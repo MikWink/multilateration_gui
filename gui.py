@@ -1,7 +1,10 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from map_generator import Map
 import json
+import sys
+from solver.foy import Foy
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -13,6 +16,7 @@ class MainWindow(QMainWindow):
         self.calculation_input = QWidget()
         self.input_fields = []
         self.bs_labels = []
+        self.generated_map = Map()
         self.setup()
 
     def setup(self):
@@ -53,11 +57,11 @@ class MainWindow(QMainWindow):
                 self.input_fields.append(input)  # Keep track of input fields
 
         save_button = QPushButton("Save")
-        save_button.clicked.connect(lambda: on_save_clicked())  # Connect the button to the slot
+        save_button.clicked.connect(lambda: self.on_save_clicked())  # Connect the button to the slot
         load_button = QPushButton("Load")
-        load_button.clicked.connect(lambda: on_load_clicked())
+        load_button.clicked.connect(lambda: self.on_load_clicked())
         update_button = QPushButton("Update")
-        update_button.clicked.connect(lambda: on_update_clicked())
+        update_button.clicked.connect(lambda: self.on_update_clicked(self.web))
         layout.addWidget(save_button, 1, 22)
         layout.addWidget(load_button, 2, 22)
         layout.addWidget(update_button, 3, 22)
@@ -91,10 +95,12 @@ class MainWindow(QMainWindow):
 
     def initCalculationInput(self):
         layout = QGridLayout()
+        calc_button = QPushButton("Calculate")
+        calc_button.clicked.connect(lambda: self.on_calc_clicked(self.web))
         dropdown = QComboBox()
         dropdown.addItem("Foy")
         layout.addWidget(dropdown, 0, 0)
-        layout.addWidget(QPushButton("Calculate"), 1, 0)
+        layout.addWidget(calc_button, 1, 0)
 
         return layout
 
@@ -130,7 +136,7 @@ class MainWindow(QMainWindow):
         # Save data to a JSON file
         self.save_json(data)
 
-    def save_json(data):
+    def save_json(self, data):
         data = {
             '0': {
                 '1': data[0],
@@ -164,7 +170,7 @@ class MainWindow(QMainWindow):
             json.dump(data, file)
         print("JSON file saved!")
 
-    def on_update_clicked(web):
+    def on_update_clicked(self, web):
         points = [[] for _ in range(5)]
         for i in range(5):
             points[i] = [0 for _ in range(3)]
@@ -173,6 +179,35 @@ class MainWindow(QMainWindow):
             i2 = i % 3
             points[i1][i2] = input_field.text()
             if i1 < 4 and i2 < 3:
-                bs_labels[i1][i2].setText(input_field.text())
-        generated_map.update(points)
+                self.bs_labels[i1][i2].setText(input_field.text())
+        self.generated_map.update(points)
         web.reload()
+
+    def on_calc_clicked(self, web):
+        bs = [[], [], []]
+        ms =[]
+        for i, input in enumerate(self.input_fields):
+            if i < len(self.input_fields)-3:
+                if i%3 == 0:
+                    bs[0].append(input.text())
+                elif i%3 == 1:
+                    bs[1].append(input.text())
+                elif i%3 == 2:
+                    bs[2].append(input.text())
+            elif i == len(self.input_fields)-3:
+                ms = [self.input_fields[i].text(), self.input_fields[i+1].text(), self.input_fields[i+2].text()]
+
+        print(bs, ms)
+        solver = Foy(bs, ms)
+        #solver.solve()
+        #self.generated_map.show_result([[5619990, 5620000, 5620010], [636346, 636366, 636386], [160, 180, 200]])
+        # Call the calculation function
+        # Update the map
+        #web.reload()
+
+
+
+app = QApplication(sys.argv)
+window = MainWindow()
+window.show()
+sys.exit(app.exec_())
