@@ -1,0 +1,12 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+modules.xml
+profiles_settings.xml
+vcs.xml
+multilateration_gui.iml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
