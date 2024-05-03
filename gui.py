@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
         self.calculation_input = QWidget()
         self.input_fields = []
         self.bs_labels = []
+        self.result_labels = []
         self.generated_map = Map()
         self.setup()
 
@@ -89,7 +90,8 @@ class MainWindow(QMainWindow):
                     bs_labels_tmp.append(label)
                     layout.addWidget(label, i * 4 + j + 1, 1)
                 else:
-                    layout.addWidget(QLabel('-'), i * 4 + j + 1, 1)
+                    self.result_labels.append(QLabel('-'))
+                    layout.addWidget(self.result_labels[j-1], i * 4 + j + 1, 1)
             self.bs_labels.append(bs_labels_tmp)
         return layout
 
@@ -201,6 +203,8 @@ class MainWindow(QMainWindow):
         solver = Foy(bs, ms)
         solver.solve()
         print(f"Solver output: {solver.guesses}")
+        for i,label in enumerate(self.result_labels):
+            label.setText(str(solver.guesses[i][len(self.result_labels)-1]))
         self.generated_map.show_result(solver.guesses)
         # Call the calculation function
         # Update the map

@@ -77,7 +77,7 @@ class Map:
         ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + int(ms[2])
         self.fig.data = new_data
         self.fig.add_trace(go.Scatter3d(x=x, y=y, z=z, name='Basestations', mode='markers', marker=dict(symbol='square-open', size=5, color='red'), showlegend=False))
-        self.fig.add_trace(go.Scatter3d(x=[ms[0]], y=[ms[1]], z=[ms_s], name='Node', mode='markers', marker=dict(symbol='cross', size=5, color='yellow'), showlegend=False))
+        self.fig.add_trace(go.Scatter3d(x=[ms[0]], y=[ms[1]], z=[ms_s], name='Node', mode='markers', marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
         # Generate the HTML string of the figure
         html_string = pyo.plot(self.fig, include_plotlyjs='cdn', output_type='div')
 
@@ -103,7 +103,7 @@ class Map:
         mapped_ms_y = round(self.map_value(637900, 632621, 641086, 0, self.imarray.shape[0]))
         ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + 180
         self.fig.add_trace(go.Scatter3d(x=[5618222], y=[637900], z=[ms_s], name='Node', mode='markers',
-                                        marker=dict(symbol='cross', size=5, color='yellow'), showlegend=False))
+                                        marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
         self.fig.add_trace(go.Scatter3d(x=points_x, y=points_y, z=points_z, name='Basestations', mode='markers',
                                    marker=dict(symbol='square-open', size=5, color='red'), showlegend=False))
 
@@ -130,12 +130,10 @@ class Map:
         try:
             points_z = []
             for i, point in enumerate(points[2]):
-                print(f"type of points_z: {type(points_z)}, type of mapped_x: {type(round(self.map_value(points[0][i], 5609803, 5623932, 0, self.imarray.shape[1])))}, type of mapped_y: {type(round(self.map_value(points[1][i], 632621, 641086, 0, self.imarray.shape[0])))}")
                 mapped_x = round(self.map_value(points[0][i], 5609803, 5623932, 0, self.imarray.shape[1]))
                 mapped_y = round(self.map_value(points[1][i], 632621, 641086, 0, self.imarray.shape[0]))
 
                 points_z.append(self.imarray[mapped_y][mapped_x] + point)
-                print(f"points_z: {points_z}")
 
 
         except Exception as e:
