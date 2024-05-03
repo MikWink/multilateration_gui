@@ -185,25 +185,26 @@ class MainWindow(QMainWindow):
 
     def on_calc_clicked(self, web):
         bs = [[], [], []]
-        ms =[]
+        ms = []
         for i, input in enumerate(self.input_fields):
             if i < len(self.input_fields)-3:
                 if i%3 == 0:
-                    bs[0].append(input.text())
+                    bs[0].append(int(input.text()))
                 elif i%3 == 1:
-                    bs[1].append(input.text())
+                    bs[1].append(int(input.text()))
                 elif i%3 == 2:
-                    bs[2].append(input.text())
-            elif i == len(self.input_fields)-3:
-                ms = [self.input_fields[i].text(), self.input_fields[i+1].text(), self.input_fields[i+2].text()]
-
-        print(bs, ms)
+                    bs[2].append(int(input.text()))
+            if i == len(self.input_fields)-3:
+                ms = [int(self.input_fields[i].text()), int(self.input_fields[i+1].text()), int(self.input_fields[i+2].text())]
+        bs.append(ms)
+        print(f"Solver input: {bs, ms}")
         solver = Foy(bs, ms)
-        #solver.solve()
-        #self.generated_map.show_result([[5619990, 5620000, 5620010], [636346, 636366, 636386], [160, 180, 200]])
+        solver.solve()
+        print(f"Solver output: {solver.guesses}")
+        self.generated_map.show_result(solver.guesses)
         # Call the calculation function
         # Update the map
-        #web.reload()
+        web.reload()
 
 
 

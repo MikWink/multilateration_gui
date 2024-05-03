@@ -126,7 +126,21 @@ class Map:
         return mapped_value
 
     def show_result(self, points):
-        self.fig.add_trace(go.Scatter3d(x=points[0], y=points[1], z=points[2], name="Localisation", marker=dict(symbol='cross', size=5, color='green'), showlegend=False))
+        print(f"show_result: {points}")
+        try:
+            points_z = []
+            for i, point in enumerate(points[2]):
+                print(f"type of points_z: {type(points_z)}, type of mapped_x: {type(round(self.map_value(points[0][i], 5609803, 5623932, 0, self.imarray.shape[1])))}, type of mapped_y: {type(round(self.map_value(points[1][i], 632621, 641086, 0, self.imarray.shape[0])))}")
+                mapped_x = round(self.map_value(points[0][i], 5609803, 5623932, 0, self.imarray.shape[1]))
+                mapped_y = round(self.map_value(points[1][i], 632621, 641086, 0, self.imarray.shape[0]))
+
+                points_z.append(self.imarray[mapped_y][mapped_x] + point)
+                print(f"points_z: {points_z}")
+
+
+        except Exception as e:
+            print(f"Error: {e}")
+        self.fig.add_trace(go.Scatter3d(x=points[0], y=points[1], z=points_z, name="Localisation", marker=dict(symbol='cross', size=5, color='green'), showlegend=False))
         # Generate the HTML string of the figure
         html_string = pyo.plot(self.fig, include_plotlyjs='cdn', output_type='div')
 
