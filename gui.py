@@ -11,6 +11,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.web = QWebEngineView()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
+        self.mode = "4BS"
+        self.height_label = []
         self.user_input = QWidget()
         self.user_info = QWidget()
         self.calculation_input = QWidget()
@@ -48,7 +50,10 @@ class MainWindow(QMainWindow):
 
             # Add the 'x:', 'y:', 'z:' labels
             for j in range(1, 4):
-                layout.addWidget(QLabel(f'{chr(120 + j - 1)}:'), j, i * 4)
+                label = QLabel(f'{chr(120 + j - 1)}:')
+                if label.text() == 'z:':
+                    self.height_label.append(label)
+                layout.addWidget(label, j, i * 4)
 
             # Add the text inputs for 'x', 'y', 'z'
             for j in range(1, 4):
@@ -101,10 +106,25 @@ class MainWindow(QMainWindow):
         calc_button.clicked.connect(lambda: self.on_calc_clicked(self.web))
         dropdown = QComboBox()
         dropdown.addItem("Foy")
+        mode_switch = QPushButton("Mode: 4BS")
+        mode_switch.clicked.connect(lambda: self.on_mode_switch_clicked(mode_switch))
         layout.addWidget(dropdown, 0, 0)
-        layout.addWidget(calc_button, 1, 0)
-
+        layout.addWidget(mode_switch, 1, 0)
+        layout.addWidget(calc_button, 2, 0)
         return layout
+
+    def on_mode_switch_clicked(self, button):
+        print(self.height_label)
+        if button.text() == "Mode: 4BS":
+            button.setText("Mode: PSI")
+            self.mode = "PSI"
+            for label in self.height_label:
+                label.setText("PSI:")
+        else:
+            button.setText("Mode: 4BS")
+            self.mode = "4BS"
+            for label in self.height_label:
+                label.setText("z:")
 
     def on_load_clicked(self):
         global input_fields
@@ -173,17 +193,20 @@ class MainWindow(QMainWindow):
         print("JSON file saved!")
 
     def on_update_clicked(self, web):
-        points = [[] for _ in range(5)]
-        for i in range(5):
-            points[i] = [0 for _ in range(3)]
-        for i, input_field in enumerate(input_fields):
-            i1 = i // 3
-            i2 = i % 3
-            points[i1][i2] = input_field.text()
-            if i1 < 4 and i2 < 3:
-                self.bs_labels[i1][i2].setText(input_field.text())
-        self.generated_map.update(points)
-        web.reload()
+        try:
+            points = [[] for _ in range(5)]
+            for i in range(5):
+                points[i] = [0 for _ in range(3)]
+            for i, input_field in enumerate(self.input_fields):
+                i1 = i // 3
+                i2 = i % 3
+                points[i1][i2] = input_field.text()
+                if i1 < 4 and i2 < 3:
+                    self.bs_labels[i1][i2].setText(input_field.text())
+            self.generated_map.update(points)
+            web.reload()
+        except Exception as e:
+            print(f"Error: {e}")
 
     def on_calc_clicked(self, web):
         bs = [[], [], []]

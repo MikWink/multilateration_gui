@@ -53,6 +53,16 @@ class Map:
             ['5619990', '636346', '200'], ['5618222', '637900', '180']])
 
     def update(self, points):
+        try:
+            if len(self.fig.data) > 3:
+                data = list(self.fig.data)
+                print(f"Data: {data}")
+                data.pop(1)
+                self.fig.data = data
+
+        except Exception as e:
+            print(f"Error: {e}")
+
         new_data = list(self.fig.data)
         new_data.pop(1)
         new_data.pop(1)
@@ -126,6 +136,15 @@ class Map:
         return mapped_value
 
     def show_result(self, points):
+        try:
+            if len(self.fig.data) > 3:
+                data = list(self.fig.data)
+                print(f"Data: {data}")
+                data.pop(1)
+                self.fig.data = data
+
+        except Exception as e:
+            print(f"Error: {e}")
         print(f"show_result: {points}")
         try:
             points_z = []
