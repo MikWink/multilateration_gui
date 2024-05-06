@@ -56,7 +56,6 @@ class Map:
         try:
             if len(self.fig.data) > 3:
                 data = list(self.fig.data)
-                print(f"Data: {data}")
                 data.pop(1)
                 self.fig.data = data
 

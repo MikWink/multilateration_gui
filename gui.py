@@ -5,14 +5,18 @@ from map_generator import Map
 import json
 import sys
 from solver.foy import Foy
+import pvlib
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.web = QWebEngineView()
+        self.master_layout = QGridLayout()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
         self.mode = "4BS"
         self.height_label = []
+        self.conv_labels = []
+        self.res_labels = []
         self.user_input = QWidget()
         self.user_info = QWidget()
         self.calculation_input = QWidget()
@@ -23,18 +27,22 @@ class MainWindow(QMainWindow):
         self.setup()
 
     def setup(self):
+        if self.mode == "4BS":
+            print("Mode switch")
+        else:
+            print("Mode switch")
         self.user_input.setLayout(self.initUI())
         self.user_info.setLayout(self.initUserInfo())
         self.calculation_input.setLayout(self.initCalculationInput())
 
-        layout = QGridLayout()
-        layout.addWidget(self.user_input, 0, 0)
-        layout.addWidget(self.web, 1, 0)
-        layout.addWidget(self.user_info, 1, 1)
-        layout.addWidget(self.calculation_input, 0, 1)
+
+        self.master_layout.addWidget(self.user_input, 0, 0)
+        self.master_layout.addWidget(self.web, 2, 0)
+        self.master_layout.addWidget(self.user_info, 2, 1)
+        self.master_layout.addWidget(self.calculation_input, 0, 1)
 
         central_widget = QWidget()
-        central_widget.setLayout(layout)
+        central_widget.setLayout(self.master_layout)
         self.setCentralWidget(central_widget)
 
     def initUI(self):
@@ -49,11 +57,21 @@ class MainWindow(QMainWindow):
             layout.addWidget(QLabel(block_label), 0, i * 4)
 
             # Add the 'x:', 'y:', 'z:' labels
-            for j in range(1, 4):
-                label = QLabel(f'{chr(120 + j - 1)}:')
-                if label.text() == 'z:':
-                    self.height_label.append(label)
-                layout.addWidget(label, j, i * 4)
+            for j in range(1, 5):
+                if j < 4:
+                    label = QLabel(f'{chr(120 + j - 1)}:')
+                    if label.text() == 'z:':
+                        self.height_label.append(label)
+                    layout.addWidget(label, j, i * 4)
+                else:
+                    conv_label = QLabel("z:")
+                    self.conv_labels.append(conv_label)
+                    conv_label.setVisible(False)
+                    res_label = QLabel("-")
+                    self.res_labels.append(res_label)
+                    res_label.setVisible(False)
+                    layout.addWidget(conv_label, j, i * 4)
+                    layout.addWidget(res_label, j, i * 4 + 1)
 
             # Add the text inputs for 'x', 'y', 'z'
             for j in range(1, 4):
@@ -114,17 +132,27 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_mode_switch_clicked(self, button):
-        print(self.height_label)
-        if button.text() == "Mode: 4BS":
-            button.setText("Mode: PSI")
-            self.mode = "PSI"
-            for label in self.height_label:
-                label.setText("PSI:")
-        else:
-            button.setText("Mode: 4BS")
-            self.mode = "4BS"
-            for label in self.height_label:
-                label.setText("z:")
+        try:
+            if button.text() == "Mode: 4BS":
+                button.setText("Mode: PSI")
+                self.mode = "PSI"
+                for label in self.height_label:
+                    label.setText("PSI:")
+                for label in self.conv_labels:
+                    label.setVisible(True)
+                for label in self.res_labels:
+                    label.setVisible(True)
+            else:
+                button.setText("Mode: 4BS")
+                self.mode = "4BS"
+                for label in self.height_label:
+                    label.setText("z:")
+                for label in self.conv_labels:
+                    label.setVisible(False)
+                for label in self.res_labels:
+                    label.setVisible(False)
+        except Exception as e:
+            print(f"Error: {e}")
 
     def on_load_clicked(self):
         global input_fields
@@ -197,43 +225,69 @@ class MainWindow(QMainWindow):
             points = [[] for _ in range(5)]
             for i in range(5):
                 points[i] = [0 for _ in range(3)]
+            count = 0
             for i, input_field in enumerate(self.input_fields):
                 i1 = i // 3
                 i2 = i % 3
-                points[i1][i2] = input_field.text()
+                print(i2)
+                print(f"Mode: {self.mode}")
+                if self.mode == "PSI" and i2 == 2:
+                    z_value = self.res_labels[count].text()
+                    count += 1
+                    print(f"points[{i1}][{i2}]: {z_value}")
+                    points[i1][i2] = str(round(float(z_value)))
+                else:
+                    points[i1][i2] = input_field.text()
+
+
                 if i1 < 4 and i2 < 3:
                     self.bs_labels[i1][i2].setText(input_field.text())
+
+            print(f"Points: {points}")
             self.generated_map.update(points)
             web.reload()
         except Exception as e:
             print(f"Error: {e}")
 
     def on_calc_clicked(self, web):
-        bs = [[], [], []]
-        ms = []
-        for i, input in enumerate(self.input_fields):
-            if i < len(self.input_fields)-3:
-                if i%3 == 0:
-                    bs[0].append(int(input.text()))
-                elif i%3 == 1:
-                    bs[1].append(int(input.text()))
-                elif i%3 == 2:
-                    bs[2].append(int(input.text()))
-            if i == len(self.input_fields)-3:
-                ms = [int(self.input_fields[i].text()), int(self.input_fields[i+1].text()), int(self.input_fields[i+2].text())]
-        bs.append(ms)
-        print(f"Solver input: {bs, ms}")
-        solver = Foy(bs, ms)
-        solver.solve()
-        print(f"Solver output: {solver.guesses}")
-        for i,label in enumerate(self.result_labels):
-            label.setText(str(solver.guesses[i][len(self.result_labels)-1]))
-        self.generated_map.show_result(solver.guesses)
-        # Call the calculation function
-        # Update the map
-        web.reload()
+        if self.mode == "4BS":
+            bs = [[], [], []]
+            ms = []
+            for i, input in enumerate(self.input_fields):
+                if i < len(self.input_fields)-3:
+                    if i%3 == 0:
+                        bs[0].append(int(input.text()))
+                    elif i%3 == 1:
+                        bs[1].append(int(input.text()))
+                    elif i%3 == 2:
+                        bs[2].append(int(input.text()))
+                if i == len(self.input_fields)-3:
+                    ms = [int(self.input_fields[i].text()), int(self.input_fields[i+1].text()), int(self.input_fields[i+2].text())]
+            bs.append(ms)
+            print(f"Solver input: {bs, ms}")
+            solver = Foy(bs, ms)
+            solver.solve()
+            print(f"Solver output: {solver.guesses}")
+            for i,label in enumerate(self.result_labels):
+                label.setText(str(solver.guesses[i][len(self.result_labels)-1]))
+            self.generated_map.show_result(solver.guesses)
+            # Call the calculation function
+            # Update the map
+            web.reload()
+        elif self.mode == "PSI":
+            self.calculate_height()
 
+    def calculate_height(self):
+        heights = []
+        try:
+            for i in range(1, len(self.input_fields)+1):
+                if i % 3 == 0 and not i == 0:
+                    heights.append(int(self.input_fields[i-1].text()))
 
+            for i, height in enumerate(heights):
+                self.res_labels[i].setText(str(pvlib.atmosphere.pres2alt(height)))
+        except Exception as e:
+            print(f"Error: {e}")
 
 app = QApplication(sys.argv)
 window = MainWindow()
