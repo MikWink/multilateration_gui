@@ -6,6 +6,7 @@ import json
 import sys
 from solver.foy import Foy
 import pvlib
+from test_3_eq import PressureSolver
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -177,11 +178,10 @@ class MainWindow(QMainWindow):
             print("Invalid JSON format.")
 
     def on_save_clicked(self):
-        global input_fields
         # Collect data from input fields
         data = []
-        for i in range(len(input_fields)):
-            data.append(input_fields[i].text())
+        for i in range(len(self.input_fields)):
+            data.append(self.input_fields[i].text())
 
         # Save data to a JSON file
         self.save_json(data)
@@ -276,6 +276,12 @@ class MainWindow(QMainWindow):
             web.reload()
         elif self.mode == "PSI":
             self.calculate_height()
+            # Define the known positions of the receivers and the reference station
+            BS0 = 4039139.89, 897222.76, 4838608.59  # Reference station
+            BS1 = 4027031.42, 890211.32, 4849775.99
+            BS2 = 4047433.94, 904276.02, 4830281.62
+            solver = PressureSolver(BS0, BS1, BS2, 5000, -6.044e-6, 6.916e-6)
+            solver.solve()
 
     def calculate_height(self):
         heights = []
