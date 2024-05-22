@@ -34,73 +34,77 @@ def angle_between_vectors(u, v):
     return theta
 
 
-# Define the vector to be rotated
-x = np.array([0, 0, 0])
-y = np.array([-12108.47, -7011.44, 11167.4])
-z = np.array([8294.05, 7053.26, -8326.97])
+### Define the Coordinates ###
+P0 = np.array([4039139.89,897222.76,4838608.59])
+P1 = np.array([4027031.42,890211.32,4849775.99])
+P2 = np.array([4047433.94,904276.02,4830281.62])
 
-print(f"Original Vector:\n{x}\n{y}\n{z}\n")
+print(f"Original Vector:\n{P0}\n{P1}\n{P2}\n")
 
-mat = rotation_matrix_from_vectors(y, np.array([1, 0, 0]))
+### Translate to Origin ###
+P0_translated = P0 - P0
+P1_translated = P1 - P0
+P2_translated = P2 - P0
+
+print(f"Translated Vector:\n{P0_translated}\n{P1_translated}\n{P2_translated}\n")
+
+### Rotate to align with x-axis ###
+
+mat = rotation_matrix_from_vectors(P1_translated, np.array([1, 0, 0]))
 
 print(f"First rotation matrix:\n{mat}\n")
 
-y_rot = np.dot(mat, y)
-z_rot = np.dot(mat, z)
+P0_rotated1 = np.dot(mat, P0_translated)
+P1_rotated1 = np.dot(mat, P1_translated)
+P2_rotated1 = np.dot(mat, P2_translated)
 
-print(f"First rotation:\n{x}\n{y_rot}\n{z_rot}\n")
+print(f"First rotation:\n{P0_rotated1}\n{P1_rotated1}\n{P2_rotated1}\n")
 
+### Rotate to align with yz-Plane ###
 # Define the axis of rotation
 axis = np.array([1, 0, 0])
 
 # Define the angle of rotation in radians
-u = np.subtract([y_rot[0], z_rot[1], z_rot[2]], [y_rot[0], 0, 0])
-v = np.subtract([y_rot[0], z_rot[1], 0], [y_rot[0], 0, 0])
+u = np.subtract([P1_rotated1[0], P2_rotated1[1], P2_rotated1[2]], [P1_rotated1[0], 0, 0])
+v = np.subtract([P1_rotated1[0], P2_rotated1[1], 0], [P1_rotated1[0], 0, 0])
 print(f"Vectors for angle calculation:\n{u}\n{v}\n")
 angle = angle_between_vectors(u, v)
-print(f"Angle of rotation:\n{np.degrees(angle)}")
+print(f"Angle of rotation:\n{np.degrees(angle)}\n")
 
 # Create a rotation object
-rotation = R.from_rotvec(angle * axis)
-
-# Project z_rot onto the yz-plane
-z_proj = np.array([0, z_rot[1], z_rot[2]])
-# Determine the angle to rotate such that z-component of z_rot becomes zero
-angle_z = np.arctan2(z_proj[2], z_proj[1])
-print(f"Angle of rotation:\n{np.degrees(angle_z)}\n")
-# Create the rotation object
-rotation_z = R.from_rotvec(angle_z * axis)
+rotation2 = R.from_rotvec(angle * axis)
 
 # Construct the rotation matrix for the second rotation
-rotation_z_mat = np.array([
+P2_rotation_mat = np.array([
     [-1, 0, 0],
-    [0, np.cos(angle_z), -np.sin(angle_z)],
-    [0, np.sin(angle_z), np.cos(angle_z)]
+    [0, np.cos(angle), -np.sin(angle)],
+    [0, np.sin(angle), np.cos(angle)]
 ])
 
 # Since we need to rotate in the opposite direction to align with the y-axis
-rotation_z_mat = rotation_z_mat.T
+P2_rotation_mat = P2_rotation_mat.T
 
-print(f"Second Rotation mat:\n{rotation_z_mat}\n")
+print(f"Second Rotation mat:\n{P2_rotation_mat}\n")
 
 # Apply the second rotation
-z_rot_final = np.dot(rotation_z_mat, z_rot)
-y_rot = np.dot(rotation_z_mat, y_rot)
+P2_rotated2 = np.dot(P2_rotation_mat, P2_rotated1)
+P1_rotated2 = np.dot(P2_rotation_mat, P1_rotated1)
+P0_rotated2 = np.dot(P2_rotation_mat, P0_rotated1)
 
 # Combine both rotations
-final_rotation_matrix = np.dot(rotation_z_mat, mat.T)
+final_rotation_matrix = np.dot(P2_rotation_mat, mat)
 
 
 
-x_rot = x
+
 print(
-    f"Second rotation:\n{[round(x_rot[0]), round(x_rot[1]), round(x_rot[2])]}\n{[round(y_rot[0]), round(y_rot[1]), round(y_rot[2])]}\n{[round(z_rot_final[0]), round(z_rot_final[1]), round(z_rot_final[2])]}\n")
+    f"Second rotation:\n{[round(P0_rotated2[0]), round(P0_rotated2[1]), round(P0_rotated2[2])]}\n{[round(P1_rotated2[0]), round(P1_rotated2[1]), round(P1_rotated2[2])]}\n{[round(P2_rotated2[0]), round(P2_rotated2[1]), round(P2_rotated2[2])]}\n")
 
-print(f"Final Rotation Matrix:\n{final_rotation_matrix.T}\n")
+print(f"Final Rotation Matrix:\n{final_rotation_matrix}\n")
 
-a = y_rot[0]
-b = z_rot_final[0]
-c = z_rot_final[1]
+a = P1_rotated2[0]
+b = P2_rotated2[0]
+c = P2_rotated2[1]
 
 
 
@@ -124,7 +128,7 @@ W = semi_minor+h
 
 print(f"U: = {U}\nV: = {V}\nW: = {W}\n")
 
-A1 = V**2 * U**2
+A1 = V**2 * W**2
 A2 = U**2 * W**2
 A3 = U**2 * V**2
 A4 = U**2 * V**2 * W**2
@@ -134,12 +138,12 @@ print(f"A1: = {A1}\nA2: = {A2}\nA3: = {A3}\nA4: = {A4}\n")
 P0 = [4039139.89, 897222.76, 4838608.59]
 
 B1 = A1
-B2 = -2*A1*P0[0]
+B2 = (-2)*A1*P0[0]
 B3 = A2
-B4 = -2*A1*P0[1]
+B4 = (-2)*A1*P0[1]
 B5 = A3
-B6 = -2*A3*P0[2]
-B7 = A4 - A1*P0[0]**2 - A2*P0[1]**2 - A3*P0[2]**2
+B6 = (-2)*A3*P0[2]
+B7 = A4 - A1*(P0[0]**2) - A2*(P0[1]**2) - A3*(P0[2]**2)
 
 print(f"B1: = {B1}\nB2: = {B2}\nB3: = {B3}\nB4: = {B4}\nB5: = {B5}\nB6: = {B6}\nB7: = {B7}\n")
 
@@ -155,16 +159,18 @@ C7 = B2*final_rotation_matrix.T[0][0] + B4*final_rotation_matrix.T[1][0] + B6*fi
 C8 = B2*final_rotation_matrix.T[0][1] + B4*final_rotation_matrix.T[1][1] + B6*final_rotation_matrix.T[2][1]
 C9 = B2*final_rotation_matrix.T[0][2] + B4*final_rotation_matrix.T[1][2] + B6*final_rotation_matrix.T[2][2]
 
+C10 = B7
+
 D1 = -A**2 - C**2
 D2 = -2*(A*B + C*D)
 D3 = 1-B**2 - D**2
 
-print(f"C1: = {C1}\nC2: = {C2}\nC3: = {C3}\nC4: = {C4}\nC5: = {C5}\nC6: = {C6}\nC7: = {C7}\nC8: = {C8}\nC9: = {C9}\n")
+print(f"C1: = {C1}\nC2: = {C2}\nC3: = {C3}\nC4: = {C4}\nC5: = {C5}\nC6: = {C6}\nC7: = {C7}\nC8: = {C8}\nC9: = {C9}\nC10: = {C10}\n")
 print(f"D1: = {D1}\nD2: = {D2}\nD3: = {D3}\n")
 
 H = C9 + C5*A + C6*C
 I = C5*B + C6*D
-E = 0
+E = C10 - C1*(A**2) - C2*(C**2) - C3*D1 - C4*A*C - C7*A - C8*C
 F = -2*C1*A*B - 2*C2*C*D - C3*D2 - C4*A*D - C4*C*B - C7*B - C8*D
 G = -C1*B**2 - C2*D**2 - C3*D3 - C4*B*B
 
