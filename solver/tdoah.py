@@ -82,12 +82,16 @@ def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A,
 
     print(f"M1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
 
+    K = pol4(M1, M2, M3, M4, M5)
+
 
 def pol4(A4, A3, A2, A1, A0):
     """Solves a 4th-degree polynomial equation."""
 
     # Normalize coefficients
     a4, a3, a2, a1, a0 = A4 / A4, A3 / A4, A2 / A4, A1 / A4, A0 / A4
+
+    print(f'a4: {a4}\na3: {a3}\na2: {a2}\na1: {a1}\na0: {a0}\n')
 
     # Calculate coefficients of the auxiliary polynomial
     aa2 = a2
@@ -181,7 +185,7 @@ def tdoah():
 
     print(f'U: {U}\nW: {W}\n')
 
-    [K, z] = tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1], locations_cartesian["P0"][2],
+    tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1], locations_cartesian["P0"][2],
                      a11, a12, a13, a21, a22, a23, a31, a32, a33, A, B, C, D)
 
 
