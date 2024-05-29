@@ -1,4 +1,5 @@
 import numpy as np
+import cmath
 
 # Constants
 cl = 3e8  # Speed of light [m/s]
@@ -85,20 +86,77 @@ def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A,
     K = pol4(M1, M2, M3, M4, M5)
 
 
-def pol4(A4, A3, A2, A1, A0):
-    """Solves a 4th-degree polynomial equation."""
+import numpy as np
 
-    # Normalize coefficients
-    a4, a3, a2, a1, a0 = A4 / A4, A3 / A4, A2 / A4, A1 / A4, A0 / A4
+def pol4(A4, A3, A2, A1, A0):
+    """
+    Berechnet die Wurzeln eines Polynoms vierten Grades.
+
+    Args:
+        A4, A3, A2, A1, A0: Koeffizienten des Polynoms vierten Grades.
+
+    Returns:
+        K: Ein NumPy-Array, das die vier Wurzeln des Polynoms enthält.
+    """
+
+    # Normierung der Koeffizienten
+    a4 = A4 / A4
+    a3 = A3 / A4
+    a2 = A2 / A4
+    a1 = A1 / A4
+    a0 = A0 / A4
+
+    print(f'A4: {A4}\nA3: {A3}\nA2: {A2}\nA1: {A1}\nA0: {A0}\n')
 
     print(f'a4: {a4}\na3: {a3}\na2: {a2}\na1: {a1}\na0: {a0}\n')
 
-    # Calculate coefficients of the auxiliary polynomial
+    # Berechnung des Hilfspolynoms dritten Grades
     aa2 = a2
     aa1 = a3 * a1 - 4 * a0
-    aa0 = 4 * a2 * a0 - a1 ** 2 - a3 ** 2 * a0
+    aa0 = 4 * a2 * a0 - a1**2 - a3**2 * a0
 
-    # ... (rest of the polynomial root calculation)
+    print(f'aa2: {aa2}\naa1: {aa1}\naa0: {aa0}\n')
+
+    # Calculate terms for the cubic equation
+    term1 = -aa2 ** 2 / 9 + aa1 / 3
+    term2 = -aa2 ** 3 / 27 + (aa1 * aa2) / 6 + aa0 / 2
+
+    # Complex numbers are used explicitly for sqrt calculations
+    term1 = complex(-aa2 ** 2 / 9 + aa1 / 3)
+    term2 = complex(-aa2 ** 3 / 27 + (aa1 * aa2) / 6 + aa0 / 2)
+    sqrt_term = np.sqrt(complex(term1 ** 3 + term2 ** 2))
+
+    # Calculating roots of the cubic equation
+    x03 = aa2 / 3 - (sqrt_term) ** (1 / 3) - aa0 / 2 - (aa1 * aa2) / 6 + aa2 ** 3 / 27 \
+          + (sqrt_term) ** (1 / 3)
+
+    # Ensuring we use a real part if the imaginary part is negligible
+    if abs(np.imag(x03)) < 1e-5:
+        x03 = np.real(x03)
+
+    print(f'x03: {x03}\n')
+
+    # Calculate R using the selected root x03, handling complex numbers
+    R = np.sqrt(complex(a3 ** 2 / 4 - a2 + x03))
+
+    print(f'R: {R}\n')
+
+    if R == 0:
+        D = np.sqrt((3 * a3**2) / 4 - 2 * a2 + 2 * np.sqrt(x03**2 - 4 * a0))
+        E = np.sqrt((3 * a3**2) / 4 - 2 * a2 - 2 * np.sqrt(x03**2 - 4 * a0))
+    else:
+        D = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 + (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R))
+        E = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 - (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R))
+
+    # Wurzeln des Polynoms
+    x0 = -a3 / 4 + (R + D) / 2
+    x1 = -a3 / 4 + (R - D) / 2
+    x2 = -a3 / 4 - (R + E) / 2
+    x3 = -a3 / 4 - (R - E) / 2
+
+    K = np.array([x0, x1, x2, x3])
+    return K
+
 
 
 def tdoah():
