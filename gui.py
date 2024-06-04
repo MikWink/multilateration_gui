@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
-from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
+from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
 import json
@@ -295,7 +295,60 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error: {e}")
 
+
+class MainWindow2(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.showMaximized()
+
+        self.view = QWebEngineView(self)
+        self.view.load(QUrl.fromLocalFile("/terrain_map.html"))
+
+        #self.setCentralWidget(self.view)
+        self.create_base_station_cards()
+
+    def create_base_station_cards(self):
+        # Example base station data
+        base_stations = [
+            ("Base Station 1", 100, 200, 50, 30),
+            ("Base Station 2", 350, 150, 80, 45),
+            # ... more base stations
+        ]
+
+        for name, x, y, z, height in base_stations:
+            card = BaseStationCard(name, x, y, z, height)
+
+            # Calculate card position relative to the chart/web view
+            card_x = self.view.x() + x  # Adjust as needed
+            card_y = self.view.y() + y
+
+            #card.setGeometry(card_x, card_y, card.sizeHint().width(), card.sizeHint().height())
+            card.show()
+
+
+class BaseStationCard(QWidget):
+    def __init__(self, name, x, y, z, height):
+        super().__init__()
+
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(f"{name}:"))
+        layout.addWidget(QLabel(f"X: {x}, Y: {y}, Z: {z}"))
+        layout.addWidget(QLabel(f"Height: {height}"))
+        self.setLayout(layout)
+
+        self.setStyleSheet("""
+            BaseStationCard {
+                background-color: rgba(255, 255, 255, 180); /* Semi-transparent white */
+                border: 1px solid lightgray;
+                padding: 10px;
+                border-radius: 5px;
+            }
+        """)
+
 app = QApplication(sys.argv)
-window = MainWindow()
+window = MainWindow2()
 window.show()
 sys.exit(app.exec_())
