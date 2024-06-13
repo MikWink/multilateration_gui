@@ -1,4 +1,5 @@
 import numpy as np
+from pyproj import CRS, Transformer
 import cmath
 
 # Constants
@@ -23,14 +24,137 @@ def w2k(fi, la, h):
     return X, Y, Z
 
 
+
+
 def k2w(x, y, z):
-    """Converts Cartesian coordinates (x, y, z) to WGS-84 (lat, lon, height)."""
-    p = np.sqrt(x ** 2 + y ** 2)
-    t = np.arctan2(1.00336408982811 * z, p)
-    fi = np.arctan2((z + 42841.31160397718 * np.sin(t) ** 3), (p - 42697.67279723619 * np.cos(t) ** 3))
-    la = np.arctan2(y, x)
-    h = p / np.cos(fi) - A / np.sqrt(1 - B * np.sin(fi) ** 2)
-    return np.degrees(fi), np.degrees(la), h
+    """Converts Cartesian coordinates (x, y, z) to WGS-84 (lon, lat, alt) in degrees and meters."""
+
+    # WGS-84 ellipsoid parameters
+    A = 57.29577951308232
+    B = 6378137
+    C = 0.00669438000426
+    D = 1.00336408982811
+    E = 42841.31160397718
+    F = 42697.67279723619
+    G = 1000
+
+    X = G*x
+    Y = G*y
+    Z = G*z
+
+    p = np.sqrt(X * X + Y * Y)
+    t = np.arctan(D * Z / p)
+    m = np.arctan((Z + E * (np.sin(t)) ** 3) / (p - F * (np.cos(t)) ** 3))
+
+    print(f'p: {p}\nt: {t}\nm: {m}\n')
+
+    lon = A * m
+    lat = A * np.arctan2(Y, X)
+    h = p /np.cos(m) - B / np.sqrt(1 - C * (np.sin(m))**2)
+
+    print(f'lon: {lon}\nlat: {lat}\nh: {h}\n')
+
+    return lon, lat, h
+
+def k2w_2(x, y, z):
+    """
+    Converts XYZ Cartesian coordinates (in meters) to Latitude, Longitude,
+    Altitude (LLA) coordinates (in degrees and meters) using the WGS84 reference
+    model and UTM zone 32N.
+
+    Args:
+        x: X coordinate in meters.
+        y: Y coordinate in meters.
+        z: Z coordinate in meters.
+
+    Returns:
+        A tuple (lat, lon, alt) representing the LLA coordinates in degrees (lat, lon)
+        and meters (alt).
+    """
+
+    wgs84 = CRS.from_epsg(4326)  # WGS84 geographic coordinate system
+    utm_zone_32N = CRS.from_epsg(32632)  # UTM zone 32N (northern hemisphere)
+    transformer = Transformer.from_crs(utm_zone_32N, wgs84, always_xy=True)
+
+    # First, correct z for geoid undulation (assuming z is above mean sea level)
+    geoid_undulation = get_geoid_undulation(x, y)  # You'll need to implement this function
+    z -= geoid_undulation
+
+    # Convert XYZ to LLA
+    lon, lat, alt = transformer.transform(x, y, z)
+
+    return lat, lon, alt
+
+def get_geoid_undulation(lat, lon):
+    """Fetches geoid undulation (height difference between ellipsoid and mean sea level)
+    for a given latitude and longitude using EGM96 model.
+
+    This is a simplified implementation. In real-world scenarios, you'd likely use a library
+    or online service to get accurate geoid data.
+
+    Args:
+        lat: Latitude in degrees.
+        lon: Longitude in degrees.
+
+    Returns:
+        Geoid undulation in meters (approximate).
+    """
+    # EGM96 coefficients for Nuremberg area (very rough approximation)
+    # For accurate results, you'd need a full geoid model or a service like:
+    # https://geographiclib.sourceforge.io/cgi-bin/GeoidEval
+    n_coeff = 360
+    c, s = np.mgrid[-180:180, -90:90] / n_coeff
+    lat_rad = np.radians(lat)
+    lon_rad = np.radians(lon)
+    geoid = (50 * np.sin(2 * lat_rad) * np.cos(lon_rad) +
+             10 * np.cos(4 * lat_rad)) * np.exp(-(lat_rad ** 2 + lon_rad ** 2))
+    return geoid
+
+
+
+def pol4(A4, A3, A2, A1, A0):
+    """
+    Calculates the roots of a fourth-degree polynomial.
+
+    Args:
+        A4, A3, A2, A1, A0: Coefficients of the polynomial (float or np.array).
+
+    Returns:
+        K: A numpy array containing the roots of the polynomial.
+    """
+
+    # Normalize coefficients (divide by leading coefficient A4)
+    a4 = A4 / A4
+    a3 = A3 / A4
+    a2 = A2 / A4
+    a1 = A1 / A4
+    a0 = A0 / A4
+
+    # Calculate coefficients of the auxiliary cubic polynomial
+    aa2 = a2
+    aa1 = a3 * a1 - 4 * a0
+    aa0 = 4 * a2 * a0 - a1**2 - a3**2 * a0
+
+    print(f'aa0: {aa0}\naa1: {aa1}\naa2: {aa2}\n')
+
+    # Find a real root of the cubic polynomial
+    discriminant = (-aa2**2/9 + aa1/3)**3 + (-aa2**3/27 + (aa1*aa2)/6 + aa0/2)**2
+
+    # Ensure real root calculation for numerical stability
+    x03_real = np.real(aa2/3 + ((discriminant**0.5 - aa0/2 - (aa1*aa2)/6 + aa2**3/27)**(1/3) + (-(discriminant**0.5) - aa0/2 - (aa1*aa2)/6 + aa2**3/27)**(1/3)))
+
+    # Calculate intermediate values
+    R = np.sqrt(a3**2 / 4 - a2 + x03_real)
+    D = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 + (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R)) if R != 0 else np.sqrt((3 * a3**2) / 4 - 2 * a2 + 2 * np.sqrt(x03_real**2 - 4 * a0))
+    E = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 - (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R)) if R != 0 else np.sqrt((3 * a3**2) / 4 - 2 * a2 - 2 * np.sqrt(x03_real**2 - 4 * a0))
+
+    # Calculate the roots of the fourth-degree polynomial
+    x0 = -a3 / 4 + (R + D) / 2
+    x1 = -a3 / 4 + (R - D) / 2
+    x2 = -a3 / 4 - (R + E) / 2
+    x3 = -a3 / 4 - (R - E) / 2
+
+    return np.array([x0, x1, x2, x3])
 
 
 def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
@@ -75,87 +199,35 @@ def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A,
 
     print(f"H: {H}\nI: {I}\nE: {E}\nF: {F}\nG: {G}\n")
 
-    M1 = G ** 2 - D3 * I ** 2
-    M2 = 2 * F * G - D2 * I ** 2 - 2 * D3 * H * I
-    M3 = F ** 2 + 2 * E * G - D1 * I ** 2 - 2 * D2 * H * I - D3 * H ** 2
-    M4 = 2 * E * F - 2 * D1 * H * I - D2 * H ** 2
-    M5 = E ** 2 - D1 * H ** 2
+    # Version 1
+    M1 = 2.7414562480964996e+54
+    M2 = 8.686202044656621e+51
+    M3 = -4.403132912749302e+68
+    M4 = -1.1473908183017031e+65
+    M5 = 5.4796754770303925e+78
 
-    print(f"M1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
+    print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
+
+    # Version 2
+    M1 = float(G ** 2 - D3 * I ** 2)  # Force float64 representation
+    M2 = float(2 * F * G - D2 * I ** 2 - 2 * D3 * H * I)
+    M3 = float(F ** 2 + 2 * E * G - D1 * I ** 2 - 2 * D2 * H * I - D3 * H ** 2)
+    M4 = float(2 * E * F - 2 * D1 * H * I - D2 * H ** 2)
+    M5 = float(E ** 2 - D1 * H ** 2)
+
+
+
+    print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
 
     K = pol4(M1, M2, M3, M4, M5)
+    zz = (E + F * K + G * K**2) / (H + I * K)
+
+    return K, zz
 
 
-import numpy as np
 
-def pol4(A4, A3, A2, A1, A0):
-    """
-    Berechnet die Wurzeln eines Polynoms vierten Grades.
 
-    Args:
-        A4, A3, A2, A1, A0: Koeffizienten des Polynoms vierten Grades.
 
-    Returns:
-        K: Ein NumPy-Array, das die vier Wurzeln des Polynoms enthält.
-    """
-
-    # Normierung der Koeffizienten
-    a4 = A4 / A4
-    a3 = A3 / A4
-    a2 = A2 / A4
-    a1 = A1 / A4
-    a0 = A0 / A4
-
-    print(f'A4: {A4}\nA3: {A3}\nA2: {A2}\nA1: {A1}\nA0: {A0}\n')
-
-    print(f'a4: {a4}\na3: {a3}\na2: {a2}\na1: {a1}\na0: {a0}\n')
-
-    # Berechnung des Hilfspolynoms dritten Grades
-    aa2 = a2
-    aa1 = a3 * a1 - 4 * a0
-    aa0 = 4 * a2 * a0 - a1**2 - a3**2 * a0
-
-    print(f'aa2: {aa2}\naa1: {aa1}\naa0: {aa0}\n')
-
-    # Calculate terms for the cubic equation
-    term1 = -aa2 ** 2 / 9 + aa1 / 3
-    term2 = -aa2 ** 3 / 27 + (aa1 * aa2) / 6 + aa0 / 2
-
-    # Complex numbers are used explicitly for sqrt calculations
-    term1 = complex(-aa2 ** 2 / 9 + aa1 / 3)
-    term2 = complex(-aa2 ** 3 / 27 + (aa1 * aa2) / 6 + aa0 / 2)
-    sqrt_term = np.sqrt(complex(term1 ** 3 + term2 ** 2))
-
-    # Calculating roots of the cubic equation
-    x03 = aa2 / 3 - (sqrt_term) ** (1 / 3) - aa0 / 2 - (aa1 * aa2) / 6 + aa2 ** 3 / 27 \
-          + (sqrt_term) ** (1 / 3)
-
-    # Ensuring we use a real part if the imaginary part is negligible
-    if abs(np.imag(x03)) < 1e-5:
-        x03 = np.real(x03)
-
-    print(f'x03: {x03}\n')
-
-    # Calculate R using the selected root x03, handling complex numbers
-    R = np.sqrt(complex(a3 ** 2 / 4 - a2 + x03))
-
-    print(f'R: {R}\n')
-
-    if R == 0:
-        D = np.sqrt((3 * a3**2) / 4 - 2 * a2 + 2 * np.sqrt(x03**2 - 4 * a0))
-        E = np.sqrt((3 * a3**2) / 4 - 2 * a2 - 2 * np.sqrt(x03**2 - 4 * a0))
-    else:
-        D = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 + (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R))
-        E = np.sqrt((3 * a3**2) / 4 - R**2 - 2 * a2 - (4 * a3 * a2 - 8 * a1 - a3**3) / (4 * R))
-
-    # Wurzeln des Polynoms
-    x0 = -a3 / 4 + (R + D) / 2
-    x1 = -a3 / 4 + (R - D) / 2
-    x2 = -a3 / 4 - (R + E) / 2
-    x3 = -a3 / 4 - (R - E) / 2
-
-    K = np.array([x0, x1, x2, x3])
-    return K
 
 
 
@@ -243,8 +315,42 @@ def tdoah():
 
     print(f'U: {U}\nW: {W}\n')
 
-    tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1], locations_cartesian["P0"][2],
+    KK, zx = tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1], locations_cartesian["P0"][2],
                      a11, a12, a13, a21, a22, a23, a31, a32, a33, A, B, C, D)
+
+    print(f'KK: {KK}\nzx: {zx}\n')
+
+    # Initialize arrays for calculated values with NaNs
+    num_roots = len(KK)
+    xx = np.full(num_roots, np.nan)
+    yy = np.full(num_roots, np.nan)
+    zz = np.full(num_roots, np.nan)
+    xxx = np.full(num_roots, np.nan)
+    yyy = np.full(num_roots, np.nan)
+    zzz = np.full(num_roots, np.nan)
+    FI = np.full(num_roots, np.nan)  # Latitude in degrees
+    LA = np.full(num_roots, np.nan)  # Longitude in degrees
+    H = np.full(num_roots, np.nan)  # Height in meters
+
+    # Iterate over the roots and calculate positions
+    for i in range(num_roots):
+        if KK[i] > 0:
+            xx[i] = A + B * KK[i]
+            yy[i] = C + D * KK[i]
+            zz[i] = zx[i]
+
+            # Transform to the original coordinate system
+            xxx[i] = a11 * xx[i] + a21 * yy[i] + a31 * zz[i] + locations_cartesian["P0"][0]
+            yyy[i] = a12 * xx[i] + a22 * yy[i] + a32 * zz[i] + locations_cartesian["P0"][1]
+            zzz[i] = a13 * xx[i] + a23 * yy[i] + a33 * zz[i] + locations_cartesian["P0"][2]
+
+            # Transform to spherical coordinates (WGS-84)
+            FI[i], LA[i], H[i] = k2w(xxx[i] / 1000, yyy[i] / 1000, zzz[i] / 1000)
+        # else:  # If KK[i] <= 0, values remain NaN (already initialized)
+
+    print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+    print('Results:\n')
+    print(f'FI: {FI}\nLA: {LA}\nH: {H}')
 
 
 tdoah()
