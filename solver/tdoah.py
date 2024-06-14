@@ -1,11 +1,12 @@
 import numpy as np
 from pyproj import CRS, Transformer
+from decimal import Decimal
 import cmath
 
 # Constants
-cl = 3e8  # Speed of light [m/s]
-A = 6378137  # Earth's semi-major axis [m] (WGS-84)
-B = 0.00669438000426  # First eccentricity squared (WGS-84)
+cl = np.longdouble(3e8)  # Speed of light [m/s]
+A = np.longdouble(6378137)  # Earth's semi-major axis [m] (WGS-84)
+B = np.longdouble(0.00669438000426)  # First eccentricity squared (WGS-84)
 
 
 def dms2degrees(dms):
@@ -16,11 +17,28 @@ def dms2degrees(dms):
 
 def w2k(fi, la, h):
     """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
-    fi_rad, la_rad = np.radians([fi, la])
-    N = A / np.sqrt(1 - B * np.sin(fi_rad) ** 2)
-    X = (N + h) * np.cos(fi_rad) * np.cos(la_rad)
-    Y = (N + h) * np.cos(fi_rad) * np.sin(la_rad)
-    Z = (N * (1 - B) + h) * np.sin(fi_rad)
+    print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
+    K = np.pi / 180
+
+    f = fi * K
+    l = la * K
+
+    A = np.longdouble(6378137)
+    B = np.longdouble(0.00669438000426)
+    C = np.longdouble(0.99330561999574)
+
+    a = np.cos(f)
+    b = np.sin(f)
+    c = np.cos(l)
+    d = np.sin(l)
+
+    n = A / np.sqrt(1 - B * b ** 2)
+
+    X = (n+h)*a*c
+    Y = (n+h)*a*d;
+    Z = (n*C+h)*b;
+
+    print(f'W2K::::\n{X:.40f}\n{Y:.40f}\n{Z:.40f}\n')
     return X, Y, Z
 
 
@@ -160,7 +178,7 @@ def pol4(A4, A3, A2, A1, A0):
 def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
     """Calculates TDOA for an ellipsoidal Earth model."""
 
-    A1, A2, A3, A4 = b ** 2 * c ** 2, a ** 2 * c ** 2, a ** 2 * b ** 2, a ** 2 * b ** 2 * c ** 2
+    A1, A2, A3, A4 = np.longdouble(b ** 2 * c ** 2), np.longdouble(a ** 2 * c ** 2), np.longdouble(a ** 2 * b ** 2), np.longdouble(a ** 2 * b ** 2 * c ** 2)
     B1 = A1
     B2 = 2 * A1 * xc
     B3 = A2
@@ -220,13 +238,20 @@ def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A,
     print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
 
     K = pol4(M1, M2, M3, M4, M5)
-    zz = (E + F * K + G * K**2) / (H + I * K)
+
+    print(f'E: {type(E)}\n F: {type(F)}\nK: {type(K)}\nG: {type(G)}\n')
+
+    zz = np.array([(E + F * k + G * k**2) / (H + I * k) for k in K])
+
+
 
     return K, zz
 
 
 
-
+def dms2deg(d, m, s):
+    deg = d + m / 60 + s / 3600
+    return deg
 
 
 
@@ -240,9 +265,19 @@ def tdoah():
         "P1": (dms2degrees([49, 48, 43]), dms2degrees([12, 27, 55]), 600),
         "P2": (dms2degrees([49, 32, 28]), dms2degrees([12, 35, 39]), 600),
     }
+    test = dms2deg(Decimal(49), Decimal(39), Decimal(20))
+    test = np.float64(test)
+    print(f'TEST:::: {test:.50f}')
 
-    # Convert location coordinates to Cartesian
-    locations_cartesian = {loc: w2k(*coords) for loc, coords in locations.items()}
+    locations_cartesian = {
+        loc: w2k(
+            np.longdouble(coords[0]),
+            np.longdouble(coords[1]),
+            np.longdouble(coords[2])
+        )
+        for loc, coords in locations.items()
+    }
+
 
     # Target coordinates (WGS-84)
     target = dms2degrees([49, 58, 13]), dms2degrees([13, 32, 59]), 5000
@@ -263,10 +298,22 @@ def tdoah():
                 target_cartesian[1] - locations_cartesian["P2"][1]) ** 2 + (
                               target_cartesian[2] - locations_cartesian["P2"][2]) ** 2)
 
+    print(f'r_0: {r_0}\nr_1: {r_1}\nr_2: {r_2}\n')
+
+    t_0 = 1/cl * r_0
+    t_1 = 1/cl * r_1
+    t_2 = 1/cl * r_2
+
+    print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
+
     r_0_1 = (r_1 - r_0) / cl
     r_0_2 = (r_2 - r_0) / cl
 
     print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
+
+    print(f'type of locations_cartesian: {type(locations_cartesian["P1"][1])}\n')
+
+    print(f'{locations_cartesian["P1"][0]}\n{locations_cartesian["P0"][0]}')
 
     # Translate coordinates
     x1 = locations_cartesian["P1"][0] - locations_cartesian["P0"][0]
@@ -276,10 +323,15 @@ def tdoah():
     y2 = locations_cartesian["P2"][1] - locations_cartesian["P0"][1]
     z2 = locations_cartesian["P2"][2] - locations_cartesian["P0"][2]
 
+    print(f'type of x1: {type(x1)}\n')
+    print(f'x1: {x1:.50f}\ny1: {y1:.50f}\nz1: {z1:.50f}\nx2: {x2}\ny2: {y2}\nz2: {z2}\n')
+
     # Calculate rotaion matrix
     a11 = -x1 / (np.sqrt(x1 ** 2 + y1 ** 2 + z1 ** 2))
     a12 = -y1 / (np.sqrt(x1 ** 2 + y1 ** 2 + z1 ** 2))
     a13 = -z1 / (np.sqrt(x1 ** 2 + y1 ** 2 + z1 ** 2))
+
+    print(f'a11: {a11}\na12: {a12}\na13: {a13}\n')
 
     temp_a31 = y2 * z1 - y1 * z2
     temp_a32 = z2 * x1 - x2 * z1
