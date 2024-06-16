@@ -74,26 +74,29 @@ class MainWindow(QMainWindow):
             line.textChanged.connect(lambda text, line_edits=line_edits, line=line, i=i: self.on_input_changed(line_edits, line, i))
 
     def on_input_changed(self, line_edits, line, index):
-        print((index /3) % 2)
-        if(int((index /3) % 2) == 0):
-            print("Polar")
-            count = int(index/3) * 3
-            for i in range(3):
-                print(f"Val: {line_edits[count+i].text()}, type {type(line_edits[count+i].text())}")
-            if(line_edits[count].text() != "" and line_edits[count+1].text() != "" and line_edits[count+2].text() != ""):
-                print("Calculating")
-                coords = self.lla_to_xyz(int(line_edits[count].text()), int(line_edits[count+1].text()), int(line_edits[count+2].text()))
-            for j in range(3):
-                line_edits[count+3+j].setText(coords[j])
-        else:
-            print("Cartesian")
-            count = int(index / 3) * 3
-            for i in range(3):
-                print(f"Val: {line_edits[count + i].text()}")
-        print(index, type(index))
-        print(f"Index: {index}")
-        print(type(line.text()))
-        print(f"Line: {line.text()}\n")
+        try:
+            print((index /3) % 2)
+            if(int((index /3) % 2) == 0):
+                print("Polar")
+                count = int(index/3) * 3
+                for i in range(3):
+                    print(f"Val: {line_edits[count+i].text()}, type {type(line_edits[count+i].text())}")
+                if(line_edits[count].text() != "" and line_edits[count+1].text() != "" and line_edits[count+2].text() != ""):
+                    print("Calculating")
+                    coords = self.lla_to_xyz(int(line_edits[count].text()), int(line_edits[count+1].text()), int(line_edits[count+2].text()))
+                for j in range(3):
+                    line_edits[count+3+j].setText(coords[j])
+            else:
+                print("Cartesian")
+                count = int(index / 3) * 3
+                for i in range(3):
+                    print(f"Val: {line_edits[count + i].text()}")
+            print(index, type(index))
+            print(f"Index: {index}")
+            print(type(line.text()))
+            print(f"Line: {line.text()}\n")
+        except ValueError:
+            pass
 
     def lla_to_xyz(self, lat, lon, alt):
         """Converts Latitude, Longitude, Altitude (LLA) coordinates (in degrees) to

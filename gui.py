@@ -349,6 +349,6 @@ class BaseStationCard(QWidget):
         """)
 
 app = QApplication(sys.argv)
-window = MainWindow2()
+window = MainWindow()
 window.show()
 sys.exit(app.exec_())
