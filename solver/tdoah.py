@@ -2,7 +2,6 @@ import numpy as np
 from pyproj import CRS, Transformer
 from decimal import Decimal
 from decimal import getcontext
-import mpmath as mp
 import cmath
 
 # Constants
@@ -10,11 +9,9 @@ cl = np.longdouble(3e8)  # Speed of light [m/s]
 A = np.longdouble(6378137)  # Earth's semi-major axis [m] (WGS-84)
 B = np.longdouble(0.00669438000426)  # First eccentricity squared (WGS-84)
 
-# Set binary precision (roughly 30 decimal places)
-mp.mp.prec = 150
+DEBUG = False
 
-# Set decimal precision (15 decimal places)
-mp.mp.dps = 16
+
 
 def dms2degrees(dms):
     """Converts degrees, minutes, seconds to decimal degrees."""
@@ -24,94 +21,62 @@ def dms2degrees(dms):
 
 def w2k(fi, la, h):
     """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
-    #print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
-    K = mp.mpf(np.pi) / mp.mpf("180")
+    if DEBUG:
+        print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
+    K = np.pi / 180
     #print(f'W2K:::: K: {K}')
 
     f = fi * K
     l = la * K
 
-    A = mp.mpf(6378137)
-    B = mp.mpf(0.00669438000426)
-    C = mp.mpf(0.99330561999574)
+    A = 6378137
+    B = 0.00669438000426
+    C = 0.99330561999574
 
     #print(f'W2K:::: f: {f}')
 
-    a = mp.cos(f)
-    b = mp.sin(f)
-    c = mp.cos(l)
-    d = mp.sin(l)
+    a = np.cos(f)
+    b = np.sin(f)
+    c = np.cos(l)
+    d = np.sin(l)
 
-    n = A / mp.sqrt(1 - B * b ** 2)
+    n = A / np.sqrt(1 - B * b ** 2)
 
     X = (n+h)*a*c
     Y = (n+h)*a*d;
     Z = (n*C+h)*b;
 
-    print(f'W2K::::\n{X}\n{Y}\n{Z}\n')
+    if DEBUG:
+        print(f'W2K::::\n{X}\n{Y}\n{Z}\n')
     return X, Y, Z
 
 
-
-
-def k2w(x, y, z):
-    """Converts Cartesian coordinates (x, y, z) to WGS-84 (lon, lat, alt) in degrees and meters."""
+def k2w(X, Y, Z):
+    """
+    Converts Cartesian coordinates (X, Y, Z) to WGS-84
+    latitude (fi), longitude (la), and height (h) in degrees and meters.
+    """
 
     # WGS-84 ellipsoid parameters
-    A = 57.29577951308232
-    B = 6378137
-    C = 0.00669438000426
-    D = 1.00336408982811
-    E = 42841.31160397718
-    F = 42697.67279723619
-    G = 1000
+    A = 6378137.0  # Semi-major axis in meters
+    B = 0.00669438002290  # Flattening
 
-    X = G*x
-    Y = G*y
-    Z = G*z
+    # Longitude Calculation
+    la_rad = np.arctan2(Y, X)
+    la = np.degrees(la_rad)
 
-    p = np.sqrt(X * X + Y * Y)
-    t = np.arctan(D * Z / p)
-    m = np.arctan((Z + E * (np.sin(t)) ** 3) / (p - F * (np.cos(t)) ** 3))
+    # Latitude and Height Calculation (Iterative Method)
+    p = np.sqrt(X**2 + Y**2)
+    fi_rad = np.arctan2(Z, p * (1 - B))  # Initial approximation
 
-    #print(f'p: {p}\nt: {t}\nm: {m}\n')
+    for _ in range(5):  # Iterate for better accuracy
+        N = A / np.sqrt(1 - B * np.sin(fi_rad)**2)
+        h = p / np.cos(fi_rad) - N
+        fi_rad = np.arctan2(Z, p * (1 - B * (N / (N + h))))
 
-    lon = A * m
-    lat = A * np.arctan2(Y, X)
-    h = p /np.cos(m) - B / np.sqrt(1 - C * (np.sin(m))**2)
+    fi = np.degrees(fi_rad)
 
-    #print(f'lon: {lon}\nlat: {lat}\nh: {h}\n')
-
-    return lon, lat, h
-
-def k2w_2(x, y, z):
-    """
-    Converts XYZ Cartesian coordinates (in meters) to Latitude, Longitude,
-    Altitude (LLA) coordinates (in degrees and meters) using the WGS84 reference
-    model and UTM zone 32N.
-
-    Args:
-        x: X coordinate in meters.
-        y: Y coordinate in meters.
-        z: Z coordinate in meters.
-
-    Returns:
-        A tuple (lat, lon, alt) representing the LLA coordinates in degrees (lat, lon)
-        and meters (alt).
-    """
-
-    wgs84 = CRS.from_epsg(4326)  # WGS84 geographic coordinate system
-    utm_zone_32N = CRS.from_epsg(32632)  # UTM zone 32N (northern hemisphere)
-    transformer = Transformer.from_crs(utm_zone_32N, wgs84, always_xy=True)
-
-    # First, correct z for geoid undulation (assuming z is above mean sea level)
-    geoid_undulation = get_geoid_undulation(x, y)  # You'll need to implement this function
-    z -= geoid_undulation
-
-    # Convert XYZ to LLA
-    lon, lat, alt = transformer.transform(x, y, z)
-
-    return lat, lon, alt
+    return fi, la, h
 
 def get_geoid_undulation(lat, lon):
     """Fetches geoid undulation (height difference between ellipsoid and mean sea level)
@@ -188,7 +153,7 @@ def pol4(A4, A3, A2, A1, A0):
 def tdoaell(a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
     """Calculates TDOA for an ellipsoidal Earth model."""
 
-    A1, A2, A3, A4 = mp.mpf(b ** 2 * c ** 2), mp.mpf(a ** 2 * c ** 2), mp.mpf(a ** 2 * b ** 2), mp.mpf(a ** 2 * b ** 2 * c ** 2)
+    A1, A2, A3, A4 = b ** 2 * c ** 2, a ** 2 * c ** 2, a ** 2 * b ** 2, a ** 2 * b ** 2 * c ** 2
     B1 = A1
     B2 = 2 * A1 * xc
     B3 = A2
@@ -263,6 +228,12 @@ def dms2deg(d, m, s):
     deg = d + m / 60 + s / 3600
     return deg
 
+def deg2dms(deg):
+    d = int(deg)
+    m = int((deg - d) * 60)
+    s = (deg - d - m / 60) * 3600
+    return d, m, s
+
 
 
 
@@ -270,11 +241,11 @@ def tdoah():
     """Main TDOA-Hyperbolic algorithm demonstration."""
     getcontext().prec = 50
 
-    P0 = (dms2degrees([mp.mpf("49"), mp.mpf("39"), mp.mpf("20")]), dms2degrees([mp.mpf("12"), mp.mpf("31"), mp.mpf("26")]), 700)
-    P1 = (dms2degrees([mp.mpf("49"), mp.mpf("48"), mp.mpf("43")]), dms2degrees([mp.mpf("12"), mp.mpf("27"), mp.mpf("55")]), 600)
-    P2 = (dms2degrees([mp.mpf("49"), mp.mpf("32"), mp.mpf("28")]), dms2degrees([mp.mpf("12"), mp.mpf("35"), mp.mpf("39")]), 600)
+    P0 = (dms2degrees([49, 39, 20]), dms2degrees([12, 31, 26]), 700)
+    P1 = (dms2degrees([49, 48, 43]), dms2degrees([12, 27, 55]), 600)
+    P2 = (dms2degrees([49, 32, 28]), dms2degrees([12, 35, 39]), 600)
 
-    #print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
+    print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
 
     locations = [P0, P1, P2]
 
@@ -310,20 +281,23 @@ def tdoah():
 
     # Target coordinates (WGS-84)
     target = dms2degrees([49, 58, 13]), dms2degrees([13, 32, 59]), 5000
+    print(f'target:\nfit: {target[0]}\nlat: {target[1]}\nalt: {target[2]}\n')
     # Convert target coordinates to Cartesian
     target_cartesian = w2k(target[0], target[1], target[2])
+    if DEBUG:
+        print("test", k2w(target_cartesian[0], target_cartesian[1], target_cartesian[2]))
 
-    #print(f'locations_cartesian: {locations_cartesian}\n')
-    #print(f'target: {target_cartesian}\n')
+    print(f'locations_cartesian: {locations_cartesian}\n')
+    print(f'target: {target_cartesian}\n')
 
     # Calculate TDOA values
-    r_0 = mp.sqrt((target_cartesian[0] - locations_cartesian["P0"][0]) ** 2 + (
+    r_0 = np.sqrt((target_cartesian[0] - locations_cartesian["P0"][0]) ** 2 + (
                 target_cartesian[1] - locations_cartesian["P0"][1]) ** 2 + (
                               target_cartesian[2] - locations_cartesian["P0"][2]) ** 2)
-    r_1 = mp.sqrt((target_cartesian[0] - locations_cartesian["P1"][0]) ** 2 + (
+    r_1 = np.sqrt((target_cartesian[0] - locations_cartesian["P1"][0]) ** 2 + (
                 target_cartesian[1] - locations_cartesian["P1"][1]) ** 2 + (
                               target_cartesian[2] - locations_cartesian["P1"][2]) ** 2)
-    r_2 = mp.sqrt((target_cartesian[0] - locations_cartesian["P2"][0]) ** 2 + (
+    r_2 = np.sqrt((target_cartesian[0] - locations_cartesian["P2"][0]) ** 2 + (
                 target_cartesian[1] - locations_cartesian["P2"][1]) ** 2 + (
                               target_cartesian[2] - locations_cartesian["P2"][2]) ** 2)
 
@@ -332,8 +306,8 @@ def tdoah():
     t_0 = 1/cl * r_0
     t_1 = 1/cl * r_1
     t_2 = 1/cl * r_2
-
-    print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
+    if DEBUG:
+        print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
 
     r_0_1 = (t_1 - t_0) * cl
     r_0_2 = (t_2 - t_0) * cl
@@ -391,9 +365,9 @@ def tdoah():
     B = -r_0_1 / a
     C = (c ** 2 + b ** 2 - 2 * A * b - r_0_2 ** 2) / (2 * c)
     D = (-B * b - r_0_2) / c
-
-    print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
-    print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
+    if DEBUG:
+        print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
+        print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
 
     U = 6378137 + target[2]
     W = 6356752.31425 + target[2]
@@ -430,12 +404,34 @@ def tdoah():
             zzz[i] = a13 * xx[i] + a23 * yy[i] + a33 * zz[i] + locations_cartesian["P0"][2]
 
             # Transform to spherical coordinates (WGS-84)
-            FI[i], LA[i], H[i] = k2w(xxx[i] / 1000, yyy[i] / 1000, zzz[i] / 1000)
+            FI[i], LA[i], H[i] = k2w(xxx[i], yyy[i], zzz[i])
         # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-
+    print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
     print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-    print('Results:\n')
-    print(f'FI: {FI}\nLA: {LA}\nH: {H}')
+    print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+    solution = []
+    for i, e in enumerate(FI):
+        coords = (FI[i], LA[i], H[i])
+        for coord in coords:
+            if coord < 0 or np.isnan(coord):
+                if DEBUG:
+                    print(f'No real solution for coords: {coords}')
+                break
+            if coord == coords[2]:
+                print(f'Real solution for coords: {coords}')
+                solution = coords
+
+    print(f'FI: {deg2dms(solution[0])}\nLA: {deg2dms(solution[1])}\nH: {solution[2]}\n')
+
+
 
 
 tdoah()
+realTarget = [3999117.68, 963774.50, 4864491.90]
+convRealTarget = k2w(realTarget[0], realTarget[1], realTarget[2])
+if DEBUG:
+    print(f'k2w: {convRealTarget}')
+realTargetDMS = [49.97027778, 13.54972222]
+convRealTarget = w2k(realTargetDMS[0], realTargetDMS[1], 5000)
+if DEBUG:
+    print(convRealTarget)
