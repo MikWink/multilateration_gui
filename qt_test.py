@@ -83,46 +83,84 @@ class MainWindow(QMainWindow):
                     print(f"Val: {line_edits[count+i].text()}, type {type(line_edits[count+i].text())}")
                 if(line_edits[count].text() != "" and line_edits[count+1].text() != "" and line_edits[count+2].text() != ""):
                     print("Calculating")
-                    coords = self.lla_to_xyz(int(line_edits[count].text()), int(line_edits[count+1].text()), int(line_edits[count+2].text()))
+                    coords = self.w2k(float(line_edits[count].text()), float(line_edits[count + 1].text()), float(line_edits[count + 2].text()))
                 for j in range(3):
-                    line_edits[count+3+j].setText(coords[j])
+                    line_edits[count+3+j].setText(str(coords[j]))
             else:
                 print("Cartesian")
                 count = int(index / 3) * 3
                 for i in range(3):
                     print(f"Val: {line_edits[count + i].text()}")
+                if (line_edits[count].text() != "" and line_edits[count + 1].text() != "" and line_edits[count + 2].text() != ""):
+                    print("Calculating")
+                    coords = self.k2w(float(line_edits[count].text()), float(line_edits[count + 1].text()),
+                                      float(line_edits[count + 2].text()))
+                for j in range(3):
+                    line_edits[count - 2 + j].setText(str(coords[j]))
             print(index, type(index))
             print(f"Index: {index}")
             print(type(line.text()))
             print(f"Line: {line.text()}\n")
-        except ValueError:
+        except Exception as e:
+            print(f"Error: {e}")
             pass
 
-    def lla_to_xyz(self, lat, lon, alt):
-        """Converts Latitude, Longitude, Altitude (LLA) coordinates (in degrees) to
-        XYZ Cartesian coordinates (in meters) using the WGS84 reference model and UTM zone 32N.
+    def w2k(self, fi, la, h):
+        """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
+        #print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
+        K = np.pi / 180
+        #print(f'W2K:::: K: {K}')
 
-        Args:
-            lat: Latitude in degrees.
-            lon: Longitude in degrees.
-            alt: Altitude in meters above the WGS84 ellipsoid (NOT sea level).
+        f = fi * K
+        l = la * K
 
-        Returns:
-            A tuple (x, y, z) representing the XYZ coordinates in meters.
+        A = 6378137
+        B = 0.00669438000426
+        C = 0.99330561999574
+
+        #print(f'W2K:::: f: {f}')
+
+        a = np.cos(f)
+        b = np.sin(f)
+        c = np.cos(l)
+        d = np.sin(l)
+
+        n = A / np.sqrt(1 - B * b ** 2)
+
+        X = (n+h)*a*c
+        Y = (n+h)*a*d;
+        Z = (n*C+h)*b;
+
+
+        #print(f'W2K::::\n{X}\n{Y}\n{Z}\n')
+        return X, Y, Z
+
+    def k2w(self, X, Y, Z):
+        """
+        Converts Cartesian coordinates (X, Y, Z) to WGS-84
+        latitude (fi), longitude (la), and height (h) in degrees and meters.
         """
 
-        wgs84 = CRS.from_epsg(4326)  # WGS84 geographic coordinate system
-        utm_zone_32N = CRS.from_epsg(32632)  # UTM zone 32N (northern hemisphere)
-        transformer = Transformer.from_crs(wgs84, utm_zone_32N, always_xy=True)
+        # WGS-84 ellipsoid parameters
+        A = 6378137.0  # Semi-major axis in meters
+        B = 0.00669438002290  # Flattening
 
-        # First, convert to XYZ on the ellipsoid (z will be ellipsoidal height)
-        x, y, z = transformer.transform(lon, lat, alt)
+        # Longitude Calculation
+        la_rad = np.arctan2(Y, X)
+        la = np.degrees(la_rad)
 
-        # Now, adjust z for geoid undulation (difference between ellipsoid and mean sea level)
-        geoid_undulation = self.get_geoid_undulation(lat, lon)  # Get undulation for the location
-        z += geoid_undulation
+        # Latitude and Height Calculation (Iterative Method)
+        p = np.sqrt(X ** 2 + Y ** 2)
+        fi_rad = np.arctan2(Z, p * (1 - B))  # Initial approximation
 
-        return x, y, z
+        for _ in range(5):  # Iterate for better accuracy
+            N = A / np.sqrt(1 - B * np.sin(fi_rad) ** 2)
+            h = p / np.cos(fi_rad) - N
+            fi_rad = np.arctan2(Z, p * (1 - B * (N / (N + h))))
+
+        fi = np.degrees(fi_rad)
+
+        return fi, la, h
 
     def get_geoid_undulation(self, lat, lon):
         """Fetches geoid undulation (height difference between ellipsoid and mean sea level)
@@ -157,10 +195,11 @@ class MainWindow(QMainWindow):
 
                 # Replace with your actual XYZ to LLA conversion logic here
                 lat, lon, alt = x / 111139, y / 111139, z
-                self.get_bs_field(bs_index, "Lat").setText(str(math.degrees(lat)))
+                self.get_bs_field(bs_index, "Lat").setText('hallo')
                 self.get_bs_field(bs_index, "Long").setText(str(math.degrees(lon)))
                 self.get_bs_field(bs_index, "Alt").setText(str(alt))
-            except ValueError:
+            except Exception as e:
+                print(f"Error: {e}")
                 pass  # Handle invalid input gracefully
 
         return calculate

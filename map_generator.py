@@ -39,7 +39,7 @@ class Map:
 
 
         # Set the title and axis labels
-        self.fig.update_layout(title='Heightmap', scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Height'))
+        self.fig.update_layout(scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Height'))
         self.fig.update_scenes(aspectmode='manual', aspectratio=dict(x=2, y=1, z=0.2))
 
         # Generate the HTML string of the figure
