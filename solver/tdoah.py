@@ -21,7 +21,6 @@ def dms2degrees(dms):
 
 def w2k(fi, la, h):
     """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
-    DEBUG = True
     if DEBUG:
         print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
     K = np.pi / 180
@@ -242,9 +241,9 @@ def tdoah():
     """Main TDOA-Hyperbolic algorithm demonstration."""
     getcontext().prec = 50
 
-    P0 = (dms2degrees([49, 28, 09.9]), dms2degrees([11, 4, 4]), 700)
-    P1 = (dms2degrees([49, 27, 27.7]), dms2degrees([11, 5, 20.9]), 600)
-    P2 = (dms2degrees([49, 27, 34.9]), dms2degrees([11, 3, 36.7]), 600)
+    P0 = (dms2degrees([50, 41, 39.1]), dms2degrees([10, 54, 60.0]), 700)
+    P1 = (dms2degrees([50, 41, 18.7]), dms2degrees([10, 55, 48.4]), 600)
+    P2 = (dms2degrees([50, 41, 20.7]), dms2degrees([10, 56, 25.0]), 600)
 
     print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
 
@@ -283,7 +282,7 @@ def tdoah():
 
 
     # Target coordinates (WGS-84)
-    target = dms2degrees([49, 27, 33.3]), dms2degrees([11, 4, 28.5]), 5000
+    target = dms2degrees([50, 41, 33.9]), dms2degrees([10, 56, 19.3]), 5000
     print(f'target:\nfit: {target[0]}\nlat: {target[1]}\nalt: {target[2]}\n')
     # Convert target coordinates to Cartesian
     target_cartesian = w2k(target[0], target[1], target[2])

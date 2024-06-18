@@ -10,14 +10,16 @@ class Map:
         self.imarray = np.array(im)
 
         ilmenau_area = np.array([[632621, 5609803], [641086, 5623932]])
+        ilmenau_real_area = np.array([[10.875, 50.625], [11, 50.75]])
 
-        x_step = (ilmenau_area[1][1] - ilmenau_area[0][1]) / self.imarray.shape[1]
-        y_step = (ilmenau_area[1][0] - ilmenau_area[0][0]) / self.imarray.shape[0]
+        x_step = (ilmenau_real_area[1][0] - ilmenau_real_area[0][0]) / self.imarray.shape[1]
+        y_step = (ilmenau_real_area[1][1] - ilmenau_real_area[0][1]) / self.imarray.shape[0]
         # print(x_step, y_step)
 
         # Define the real-world coordinates
-        y_coords = np.arange(632621, 641086, y_step)
-        x_coords = np.arange(5609803, 5623932, x_step)
+        x_coords = np.arange(ilmenau_real_area[0][0], ilmenau_real_area[1][0], x_step)
+        y_coords = np.arange(ilmenau_real_area[0][1], ilmenau_real_area[1][1], y_step)
+
 
         print(len(x_coords), len(y_coords))
         print(self.imarray.shape)
@@ -33,7 +35,7 @@ class Map:
         self.fig = go.Figure(data=[go.Surface(x=X, y=Y, z=self.imarray, colorscale='Viridis', showscale=False, name='Terrain')],
                         layout=layout)
 
-        self.points = [[5621990, 636646, 0], [5616452, 636456, 0], [5618652, 640156, 0], [5619990, 636346, 200]]
+        self.points = [[50.69419444444444, 10.916666666666668, 0], [50.68852777777777, 10.93011111111111, 0], [50.68908333333333, 10.940277777777778, 0], [50.69275, 10.938694444444444, 0]]
         self.plot_point()
 
 
@@ -49,8 +51,8 @@ class Map:
         with open('terrain_map.html', 'w') as file:
             file.write(html_string)
 
-        self.update([['5621990', '636646', '0'], ['5616452', '636456', '0'], ['5618652', '640156', '0'],
-            ['5619990', '636346', '200'], ['5618222', '637900', '180']])
+        self.update([['50.69419444444444', '10.916666666666668', '0'], ['50.68852777777777', '10.93011111111111', '0'], ['50.68908333333333', '10.940277777777778', '0'],
+            ['50.69275', '10.940277777777778', '200'], ['50.69275', '10.940277777777778', '180']])
 
     def update(self, points):
         try:
@@ -67,23 +69,31 @@ class Map:
         new_data.pop(1)
 
         ms = points.pop(len(points) - 1)
+        temp = ms[0]
+        ms[0] = ms[1]
+        ms[1] = temp
 
         x = []
         y = []
         z = []
 
         for point in points:
-            x_tmp = point[0]
-            y_tmp = point[1]
+            x_tmp = point[1]
+            y_tmp = point[0]
             x.append(x_tmp)
             y.append(y_tmp)
-            mapped_x = round(self.map_value(float(x_tmp), 5609803, 5623932, 0, self.imarray.shape[1]))
-            mapped_y = round(self.map_value(float(y_tmp), 632621, 641086, 0, self.imarray.shape[0]))
+            print(f'x_tmp: {x_tmp}, {type(x_tmp)}, y_tmp: {y_tmp}')
+            mapped_x = round(self.map_value(float(x_tmp), 10.875, 11.0, 0, self.imarray.shape[1]))
+            mapped_y = round(self.map_value(float(y_tmp), 50.625, 50.75, 0, self.imarray.shape[0]))
+            print(f"mapped_x: {mapped_x}, mapped_y: {mapped_y}")
             z.append(self.imarray[mapped_y][mapped_x] + float(point[2]))
 
-        mapped_ms_x = round(self.map_value(int(ms[0]), 5609803, 5623932, 0, self.imarray.shape[1]))
-        mapped_ms_y = round(self.map_value(int(ms[1]), 632621, 641086, 0, self.imarray.shape[0]))
+        mapped_ms_x = round(self.map_value(float(ms[0]), 10.875, 11.0, 0, self.imarray.shape[1]))
+        mapped_ms_y = round(self.map_value(float(ms[1]), 50.625, 50.75, 0, self.imarray.shape[0]))
+        print(f'ms[0]: {ms[0]}, ms[1]: {ms[1]}')
+        print(f'mapped_ms_x: {mapped_ms_x}, mapped_ms_y: {mapped_ms_y}')
         ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + int(ms[2])
+        print(f"ms_s: {ms}")
         self.fig.data = new_data
         self.fig.add_trace(go.Scatter3d(x=x, y=y, z=z, name='Basestations', mode='markers', marker=dict(symbol='square-open', size=5, color='red'), showlegend=False))
         self.fig.add_trace(go.Scatter3d(x=[ms[0]], y=[ms[1]], z=[ms_s], name='Node', mode='markers', marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
@@ -100,19 +110,18 @@ class Map:
         points_y = []
         points_z = []
         for point in self.points:
-            x = point[0]
-            y = point[1]
+            x = point[1]
+            y = point[0]
             points_x.append(x)
             points_y.append(y)
-            mapped_x = round(self.map_value(x, 5609803, 5623932, 0, self.imarray.shape[1]))
-            mapped_y = round(self.map_value(y, 632621, 641086, 0, self.imarray.shape[0]))
+            mapped_x = round(self.map_value(x, 10.875, 11.0, 0, self.imarray.shape[1]))
+            mapped_y = round(self.map_value(y, 50.625, 50.75, 0, self.imarray.shape[0]))
             points_z.append(self.imarray[mapped_y][mapped_x] + point[2])
 
-        mapped_ms_x = round(self.map_value(5618222, 5609803, 5623932, 0, self.imarray.shape[1]))
-        mapped_ms_y = round(self.map_value(637900, 632621, 641086, 0, self.imarray.shape[0]))
+        mapped_ms_x = round(self.map_value(10.938694444444444, 10.875, 11, 0, self.imarray.shape[1]))
+        mapped_ms_y = round(self.map_value(50.69275, 50.625, 50.75, 0, self.imarray.shape[0]))
         ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + 180
-        self.fig.add_trace(go.Scatter3d(x=[5618222], y=[637900], z=[ms_s], name='Node', mode='markers',
-                                        marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
+        self.fig.add_trace(go.Scatter3d(x=[10.938694444444444], y=[50.69275], z=[ms_s], name='Node', mode='markers', marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
         self.fig.add_trace(go.Scatter3d(x=points_x, y=points_y, z=points_z, name='Basestations', mode='markers',
                                    marker=dict(symbol='square-open', size=5, color='red'), showlegend=False))
 
