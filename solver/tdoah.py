@@ -21,6 +21,7 @@ def dms2degrees(dms):
 
 def w2k(fi, la, h):
     """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
+    DEBUG = True
     if DEBUG:
         print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
     K = np.pi / 180
@@ -248,6 +249,8 @@ def tdoah():
     print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
 
     locations = [P0, P1, P2]
+
+    print(k2w(5621990, 636646, 100))
 
     """# Coordinates of locations (WGS-84)
     locations = {

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QApplication
-from gui import MainWindow2
+from gui import MainWindow
 import sys
 
 def setup():
     app = QApplication(sys.argv)
-    window = MainWindow2()
+    window = MainWindow()
     window.show()
     sys.exit(app.exec_())
 

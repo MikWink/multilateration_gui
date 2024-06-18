@@ -77,9 +77,9 @@ class Map:
             y_tmp = point[1]
             x.append(x_tmp)
             y.append(y_tmp)
-            mapped_x = round(self.map_value(int(x_tmp), 5609803, 5623932, 0, self.imarray.shape[1]))
-            mapped_y = round(self.map_value(int(y_tmp), 632621, 641086, 0, self.imarray.shape[0]))
-            z.append(self.imarray[mapped_y][mapped_x] + int(point[2]))
+            mapped_x = round(self.map_value(float(x_tmp), 5609803, 5623932, 0, self.imarray.shape[1]))
+            mapped_y = round(self.map_value(float(y_tmp), 632621, 641086, 0, self.imarray.shape[0]))
+            z.append(self.imarray[mapped_y][mapped_x] + float(point[2]))
 
         mapped_ms_x = round(self.map_value(int(ms[0]), 5609803, 5623932, 0, self.imarray.shape[1]))
         mapped_ms_y = round(self.map_value(int(ms[1]), 632621, 641086, 0, self.imarray.shape[0]))
