@@ -295,23 +295,29 @@ class MainWindow(QMainWindow):
 
     def on_update_clicked(self, web):
         try:
-            points = [[] for _ in range(5)]
-            for i in range(5):
+            if self.mode == "4BS":
+                num = 5
+            else:
+                num = 4
+            points = [[] for _ in range(num)]
+            for i in range(num):
+                print(f'i: {i}')
                 points[i] = [0 for _ in range(3)]
             count = 0
+            print(f'points: {points}')
+            print(f'last input: {self.input_fields[len(self.input_fields)-1].text()}')
+            points[num-1] = [float(self.input_fields[len(self.input_fields)-3].text()), float(self.input_fields[len(self.input_fields)-2].text()), float(self.input_fields[len(self.input_fields)-1].text())]
+            print(f'Points: {points}')
             for i, input_field in enumerate(self.input_fields):
-                i1 = i // 3
-                i2 = i % 3
-                print(i2)
-                print(f"Mode: {self.unit}")
-                if self.mode == "3BS" and i2 == 2:
-                    z_value = self.res_labels[count].text()
-                    count += 1
-                    print(f"points[{i1}][{i2}]: {z_value}")
-                    points[i1][i2] = str(float(z_value))
+                if self.mode == "3BS" and i > 8:
+                    break
                 else:
+                    i1 = i // 3
+                    i2 = i % 3
+                    if i1 == 4:
+                        i1 = i1 - 1
+                    print(f'i1: {i1}, i2: {i2}')
                     points[i1][i2] = input_field.text()
-
 
                 if i1 < 4 and i2 < 3:
                     self.bs_labels[i1][i2].setText(input_field.text())
@@ -329,7 +335,9 @@ class MainWindow(QMainWindow):
             if self.mode == "4BS":
                 bs = [[], [], []]
                 ms = []
+                print(f"Input fields: {self.input_fields}")
                 for i, input in enumerate(self.input_fields):
+                    print(f'i: {i}, input: {input.text()}')
                     if i < len(self.input_fields)-3:
                         if i%3 == 0:
                             bs[0].append(float(input.text()))
