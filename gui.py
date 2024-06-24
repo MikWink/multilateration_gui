@@ -4,10 +4,12 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
 import json
 import sys
+import os
 from solver.foy import Foy
 import pvlib
 from test_3_eq import PressureSolver
-from solver.tdoah import w2k, k2w
+from solver.tdoah import *
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -329,10 +331,10 @@ class MainWindow(QMainWindow):
             print(f"Errror: {e}")
 
     def on_calc_clicked(self, web):
-        if self.unit == "Deg":
-            self.on_unit_switch_clicked(self.unit_switch)
         try:
             if self.mode == "4BS":
+                if self.unit == "Deg":
+                    self.on_unit_switch_clicked(self.unit_switch)
                 bs = [[], [], []]
                 ms = []
                 print(f"Input fields: {self.input_fields}")
@@ -359,13 +361,26 @@ class MainWindow(QMainWindow):
                 # Update the map
                 web.reload()
             elif self.mode == "3BS":
-                self.calculate_height()
-                # Define the known positions of the receivers and the reference station
-                BS0 = 4039139.89, 897222.76, 4838608.59  # Reference station
-                BS1 = 4027031.42, 890211.32, 4849775.99
-                BS2 = 4047433.94, 904276.02, 4830281.62
-                solver = PressureSolver(BS0, BS1, BS2, 5000, -6.044e-6, 6.916e-6)
-                solver.solve()
+                os.system('cls')
+                #self.calculate_height()
+                bs = [[], [], []]
+                ms = []
+                print(f"Input fields: {self.input_fields}")
+                for i, input in enumerate(self.input_fields):
+                    print(f'i: {i}, input: {input.text()}')
+                    if i < len(self.input_fields) - 6:
+                        if i % 3 == 0:
+                            bs[0].append(float(input.text()))
+                        elif i % 3 == 1:
+                            bs[1].append(float(input.text()))
+                        elif i % 3 == 2:
+                            bs[2].append(float(input.text()))
+                    if i == len(self.input_fields) - 3:
+                        ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                              float(self.input_fields[i + 2].text())]
+                print(f"Solver input: {bs, ms}")
+                tdoah(bs, ms)
+
         except Exception as e:
             print(f'Error: {e}')
 

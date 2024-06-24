@@ -237,13 +237,17 @@ def deg2dms(deg):
 
 
 
-def tdoah():
+def tdoah(bs, ms):
     """Main TDOA-Hyperbolic algorithm demonstration."""
     getcontext().prec = 50
 
-    P0 = (dms2degrees([50, 41, 39.1]), dms2degrees([10, 54, 60.0]), 700)
+    """P0 = (dms2degrees([50, 41, 39.1]), dms2degrees([10, 54, 60.0]), 700)
     P1 = (dms2degrees([50, 41, 18.7]), dms2degrees([10, 55, 48.4]), 600)
-    P2 = (dms2degrees([50, 41, 20.7]), dms2degrees([10, 56, 25.0]), 600)
+    P2 = (dms2degrees([50, 41, 20.7]), dms2degrees([10, 56, 25.0]), 600)"""
+
+    P0 = (bs[0][0], bs[1][0], bs[2][0])
+    P1 = (bs[0][1], bs[1][1], bs[2][1])
+    P2 = (bs[0][2], bs[1][2], bs[2][2])
 
     print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
 
@@ -282,7 +286,7 @@ def tdoah():
 
 
     # Target coordinates (WGS-84)
-    target = dms2degrees([50, 41, 33.9]), dms2degrees([10, 56, 19.3]), 5000
+    target = ms[0], ms[1], ms[2]
     print(f'target:\nfit: {target[0]}\nlat: {target[1]}\nalt: {target[2]}\n')
     # Convert target coordinates to Cartesian
     target_cartesian = w2k(target[0], target[1], target[2])
@@ -428,7 +432,7 @@ def tdoah():
 
 
 
-tdoah()
+#tdoah()
 realTarget = [3999117.68, 963774.50, 4864491.90]
 convRealTarget = k2w(realTarget[0], realTarget[1], realTarget[2])
 if DEBUG:
