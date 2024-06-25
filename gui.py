@@ -317,8 +317,9 @@ class MainWindow(QMainWindow):
                 else:
                     i1 = i // 3
                     i2 = i % 3
-                    if i1 == 4:
-                        i1 = i1 - 1
+                    # why did i do that????
+                    """if i1 == 4:
+                        i1 = i1 - 1"""
                     print(f'i1: {i1}, i2: {i2}')
                     points[i1][i2] = input_field.text()
 
