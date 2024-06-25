@@ -9,6 +9,7 @@ from solver.foy import Foy
 import pvlib
 from test_3_eq import PressureSolver
 from solver.tdoah import *
+from solver.tdoah_class import Tdoah
 
 
 class MainWindow(QMainWindow):
@@ -356,6 +357,8 @@ class MainWindow(QMainWindow):
                 print(f"Solver output: {solver.guesses}")
                 for i,label in enumerate(self.result_labels):
                     label.setText(str(solver.guesses[i][len(self.result_labels)-1]))
+
+                print(f"Solver output: {solver.guesses}")
                 self.generated_map.show_result(solver.guesses)
                 # Call the calculation function
                 # Update the map
@@ -379,7 +382,11 @@ class MainWindow(QMainWindow):
                         ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
                               float(self.input_fields[i + 2].text())]
                 print(f"Solver input: {bs, ms}")
-                tdoah(bs, ms)
+                solver = Tdoah(bs, ms)
+                target = solver.solve()
+                print(f'Final: {target}')
+                self.generated_map.show_result(target)
+                web.reload()
 
         except Exception as e:
             print(f'Error: {e}')

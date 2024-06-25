@@ -163,7 +163,7 @@ class Map:
         print(f"show_result: {points}")
 
         print('\n#######')
-        print(f'Points: {points[0]}')
+        print(f'Points: {points}')
         points_conv = [[], [], []]
         # Converting coordinates in lat, lon
         for i, point in enumerate(points[0]):
