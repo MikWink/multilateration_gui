@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         solver.solve()
         solution = solver.guesses[0].pop(), solver.guesses[1].pop(), solver.guesses[2].pop()
         error = [abs(solution[0] - ms[0]), abs(solution[1] - ms[1]), abs(solution[2] - ms[2])]
-        print(f'Estimated target position (TDOA: Foy): {solution}\nError: {error}')
+        print(f'Estimated target position (TDOA: Foy):\n{solution}\n\nError: {error}\n')
         solver = Tdoah(bs, ms)
         solution = solver.solve()
         #print(f"Solver Done\n{solution}")
@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
             error = [abs(solution[0][0] - ms[0]), abs(solution[1][0] - ms[1]), abs(solution[2][0] - ms[2])]
         except Exception as e:
             print(f'Error: {e}')
-        print(f'Estimated target position (TDOAH): {solution}\nError: {error}')
+        print(f'Estimated target position (TDOAH):\n{solution}\n\nError: {error}')
 
 
     def on_mode_switch_clicked(self, button):
