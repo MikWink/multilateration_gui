@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self.web = QWebEngineView()
         self.master_layout = QGridLayout()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
+        self.json_file = None
         self.mode = "4BS"
         self.unit = "Deg"
         self.unit_switch = None
@@ -161,6 +162,8 @@ class MainWindow(QMainWindow):
         layout = QGridLayout()
         calc_button = QPushButton("Calculate")
         calc_button.clicked.connect(lambda: self.on_calc_clicked(self.web))
+        comp_button = QPushButton("Compare")
+        comp_button.clicked.connect(lambda: self.on_compare_clicked(self.web))
         #dropdown = QComboBox()
         #dropdown.addItem("Foy")
         mode_switch = QPushButton("Mode: 4BS")
@@ -171,7 +174,41 @@ class MainWindow(QMainWindow):
         layout.addWidget(mode_switch, 1, 0)
         layout.addWidget(self.unit_switch, 2, 0)
         layout.addWidget(calc_button, 3, 0)
+        layout.addWidget(comp_button, 4, 0)
         return layout
+
+    def on_compare_clicked(self, web):
+        print(f'\n\n####    Comparison: ####\nBS-Setup: {self.json_file}')
+        bs = [[], [], []]
+        ms = []
+        for i, input in enumerate(self.input_fields):
+            if i < len(self.input_fields) - 3:
+                if i % 3 == 0:
+                    bs[0].append(float(input.text()))
+                elif i % 3 == 1:
+                    bs[1].append(float(input.text()))
+                elif i % 3 == 2:
+                    bs[2].append(float(input.text()))
+            if i == len(self.input_fields) - 3:
+                ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                      float(self.input_fields[i + 2].text())]
+        bs.append(ms)
+        print(f'\nBS0: {bs[0][0], bs[1][0], bs[2][0]}\nBS1: {bs[0][1], bs[1][1], bs[2][1]}\nBS2: {bs[0][2], bs[1][2], bs[2][2]}\nBS3: {bs[0][3], bs[1][3], bs[2][3]}\n')
+        print(f'Real target position: {ms}\n')
+        solver = Foy(bs, ms)
+        solver.solve()
+        solution = solver.guesses[0].pop(), solver.guesses[1].pop(), solver.guesses[2].pop()
+        error = [abs(solution[0] - ms[0]), abs(solution[1] - ms[1]), abs(solution[2] - ms[2])]
+        print(f'Estimated target position (TDOA: Foy): {solution}\nError: {error}')
+        solver = Tdoah(bs, ms)
+        solution = solver.solve()
+        #print(f"Solver Done\n{solution}")
+        try:
+            error = [abs(solution[0][0] - ms[0]), abs(solution[1][0] - ms[1]), abs(solution[2][0] - ms[2])]
+        except Exception as e:
+            print(f'Error: {e}')
+        print(f'Estimated target position (TDOAH): {solution}\nError: {error}')
+
 
     def on_mode_switch_clicked(self, button):
         try:
@@ -234,6 +271,8 @@ class MainWindow(QMainWindow):
         try:
             temp = [['5621990', '636646', '0'], ['5616452', '636456', '0'], ['5618652', '640156', '0'],
                     ['5619990', '636346', '200']]
+            if file_path:
+                self.json_file = os.path.basename(file_path)
             with open(file_path, 'r') as json_file:
                 data = json.load(json_file)
                 print(f'data: {data}')

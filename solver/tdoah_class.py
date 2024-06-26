@@ -116,23 +116,23 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        print(
-            f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    print(f'No real solution for coords: {coords}')
+                    #print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    print(f'Real solution for coords: {coords}')
+                    #print(f'Real solution for coords: {coords}')
                     solution = coords
 
-        print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
-        solution_conv = self.w2k(solution[0], solution[1], solution[2])
+        #print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
+        solution_conv = solution[0], solution[1], solution[2]
+        #print("All done, returning values...")
         return [[solution_conv[0]], [solution_conv[1]], [solution_conv[2]]]
 
     def tdoaell(self, a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
@@ -246,7 +246,7 @@ class Tdoah:
 
     def w2k(self, fi, la, h):
         """Converts WGS-84 coordinates (lat, lon, height) to Cartesian (x, y, z)."""
-        print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
+        #print(f'W2K:::: type of fi: {type(fi)} # {fi:.40f} # , la: {type(la)} # {la:.40f} # , h: {type(h)} # {h:.40f} # ')
         K = np.pi / 180
         # print(f'W2K:::: K: {K}')
 
@@ -268,7 +268,7 @@ class Tdoah:
         Y = (n + h) * a * d;
         Z = (n * self.C + h) * b;
 
-        print(f'W2K::::\n{X}\n{Y}\n{Z}\n')
+        #print(f'W2K::::\n{X}\n{Y}\n{Z}\n')
         return X, Y, Z
 
     def k2w(self, X, Y, Z):
