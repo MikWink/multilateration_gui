@@ -6,7 +6,7 @@ from solver.tdoah import w2k, k2w
 
 class Map:
     def __init__(self):
-        im = Image.open('50n000e_20101117_gmted_bln075.tif')
+        im = Image.open('ilmenau_r5km_c3.tif')
 
         self.imarray = np.array(im)
         self.imarray = self.imarray[::-1]

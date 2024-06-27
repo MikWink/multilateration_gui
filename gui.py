@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
@@ -31,6 +31,7 @@ class MainWindow(QMainWindow):
         self.user_input = QWidget()
         self.user_info = QWidget()
         self.calculation_input = QWidget()
+        self.eval_input = QWidget()
         self.input_fields = []
         self.bs_labels = []
         self.result_labels = []
@@ -45,16 +46,88 @@ class MainWindow(QMainWindow):
         self.user_input.setLayout(self.initUI())
         self.user_info.setLayout(self.initUserInfo())
         self.calculation_input.setLayout(self.initCalculationInput())
+        self.eval_input.setLayout(self.initEvalInput())
+
 
 
         self.master_layout.addWidget(self.user_input, 0, 0)
         self.master_layout.addWidget(self.web, 2, 0)
         self.master_layout.addWidget(self.user_info, 2, 1)
         self.master_layout.addWidget(self.calculation_input, 0, 1)
+        self.master_layout.addWidget(self.eval_input, 3, 0)
+
+        self.web.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         central_widget = QWidget()
         central_widget.setLayout(self.master_layout)
         self.setCentralWidget(central_widget)
+
+    def initEvalInput(self):
+        layout = QGridLayout()
+
+        # TDOA Std Slider
+        tdoa_std_slider = QSlider(Qt.Horizontal)
+        tdoa_std_slider.setMinimum(0)
+        tdoa_std_slider.setMaximum(10)
+        tdoa_std_label = QLabel("0")
+        tdoa_std_slider.sliderReleased.connect(lambda: self.on_tdoa_std_changed(tdoa_std_slider, tdoa_std_label))
+        tdoa_std_slider.valueChanged.connect(lambda: self.on_value_changed(tdoa_std_slider, tdoa_std_label))
+
+        # Baro Std Slider
+        baro_std_slider = QSlider(Qt.Horizontal)
+        baro_std_slider.setMinimum(0)
+        baro_std_slider.setMaximum(10)
+        baro_std_label = QLabel("0")
+        baro_std_slider.sliderReleased.connect(lambda: self.on_baro_std_changed(baro_std_slider, baro_std_label))
+        baro_std_slider.valueChanged.connect(lambda: self.on_value_changed(baro_std_slider, baro_std_label))
+
+        # Iterations Input
+        iterations_label = QLabel("Iterations:")
+        iterations_input = QLineEdit()
+        iterations_input.setText("100")
+
+        # Start button
+        start_button = QPushButton("Start")
+
+        # Eval output
+        tdoa_deviation = QLabel("-")
+        baro_deviation = QLabel("-")
+        start_eval_btn = QPushButton("Start")
+        start_eval_btn.clicked.connect(lambda: self.on_eval_clicked(self.web, tdoa_deviation, baro_deviation))
+
+        layout.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
+        layout.addWidget(QLabel("TDOA"), 1, 3)
+        layout.addWidget(QLabel("Baro"), 1, 4)
+        layout.addWidget(tdoa_deviation, 2, 3)
+        layout.addWidget(baro_deviation, 2, 4)
+        layout.addWidget(start_eval_btn, 3, 4)
+
+
+        # Adding Widgets
+        layout.addWidget(QLabel("TDOA Std:"), 0, 0)
+        layout.addWidget(iterations_label, 0, 2)
+        layout.addWidget(tdoa_std_slider, 1, 0)
+        layout.addWidget(tdoa_std_label, 1, 1)
+        layout.addWidget(iterations_input, 1, 2)
+        layout.addWidget(QLabel("Baro Std:"), 2, 0)
+        layout.addWidget(baro_std_slider, 3, 0)
+        layout.addWidget(baro_std_label, 3, 1)
+        layout.addWidget(start_button, 3, 2)
+
+        return layout
+
+    def on_eval_clicked(self, web, tdoa_deviation, baro_deviation):
+        tdoa_deviation.setText("Hello")
+        baro_deviation.setText("World")
+
+    def on_value_changed(self, slider, label):
+        label.setText(str(slider.value()))
+
+    def on_tdoa_std_changed(self, slider, label):
+        pass
+
+    def on_baro_std_changed(self, slider, label):
+        pass
 
     def initUI(self):
         layout = QGridLayout()
@@ -496,7 +569,3 @@ class BaseStationCard(QWidget):
             }
         """)
 
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-sys.exit(app.exec_())
