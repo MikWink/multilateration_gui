@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
+    QLineEdit, QPushButton, QComboBox, QFileDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
@@ -22,6 +23,7 @@ class MainWindow(QMainWindow):
         self.mode = "4BS"
         self.unit = "Deg"
         self.unit_switch = None
+        self.conv_values = []
         self.bs3_elements = []
         self.lat_labels = []
         self.long_labels = []
@@ -37,22 +39,17 @@ class MainWindow(QMainWindow):
         self.result_labels = []
         self.generated_map = Map()
         self.setup()
+        self.on_update_clicked(self.web)
 
     def setup(self):
-        if self.unit == "Deg":
-            print("Mode switch")
-        else:
-            print("Mode switch")
         self.user_input.setLayout(self.initUI())
         self.user_info.setLayout(self.initUserInfo())
         self.calculation_input.setLayout(self.initCalculationInput())
         self.eval_input.setLayout(self.initEvalInput())
 
-
-
         self.master_layout.addWidget(self.user_input, 0, 0)
         self.master_layout.addWidget(self.web, 2, 0)
-        self.master_layout.addWidget(self.user_info, 2, 1)
+        self.master_layout.addWidget(self.user_info, 2, 1, 2, 1)
         self.master_layout.addWidget(self.calculation_input, 0, 1)
         self.master_layout.addWidget(self.eval_input, 3, 0)
 
@@ -102,7 +99,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(baro_deviation, 2, 4)
         layout.addWidget(start_eval_btn, 3, 4)
 
-
         # Adding Widgets
         layout.addWidget(QLabel("TDOA Std:"), 0, 0)
         layout.addWidget(iterations_label, 0, 2)
@@ -134,61 +130,39 @@ class MainWindow(QMainWindow):
 
         # Define the labels for each block
         block_labels = ['BS0:', 'BS1:', 'BS2:', 'BS3:', 'MS:']
-        temp = [['5621990', '636646', '100'], ['5616452', '636456', '0'], ['5618652', '640156', '0'],
-                ['5619990', '636346', '200'], ['5618222', '637900', '180']]
-        temp = [['49.46941666666667', '11.067777777777778', '100'], ['49.45769444444445', '11.08913888888889', '0'], ['49.459694444444445', '11.060194444444445', '0'],
-                  ['49.459694444444445', '11.060194444444445', '200'], ['49.459250000000004', '11.074583333333333', '180']]
         coord_labels = ['Lat', 'Long', 'Alt']
+
+        # iterate basestation labels and create labels and inputs for each basestation
         for i, block_label in enumerate(block_labels):
-            if len(block_label) - 1 == i:
+            # if element part of label BS3:, save element in variable for modeswitch access
+            if block_label == 'BS3:':
                 bs3_label = QLabel(block_label)
                 self.bs3_elements.append(bs3_label)
                 layout.addWidget(bs3_label, 0, i * 4)
-
-                # Add the 'x:', 'y:', 'z:' labels
-                for j in range(1, 6):
-                    if j < 4:
-                        label = QLabel(f'{coord_labels[j - 1]}:')
-                        if label.text() == 'Lat:':
-                            self.bs3_elements.append(label)
-                            self.lat_labels.append(label)
-                        if label.text() == 'Long:':
-                            self.bs3_elements.append(label)
-                            self.long_labels.append(label)
-                        if label.text() == 'Alt:':
-                            self.bs3_elements.append(label)
-                            self.height_label.append(label)
-                        layout.addWidget(label, j, i * 4)
-
-                # Add the text inputs for 'x', 'y', 'z'
-                for j in range(1, 4):
-                    input = QLineEdit()
-                    input.setText(temp[i][j - 1])
-                    layout.addWidget(input, j, i * 4 + 1)
-                    self.input_fields.append(input)  # Keep track of input fields
-                    self.bs3_elements.append(input)
             else:
-                # Add the block label
                 layout.addWidget(QLabel(block_label), 0, i * 4)
 
-                # Add the 'x:', 'y:', 'z:' labels
-                for j in range(1, 6):
-                    if j < 4:
-                        label = QLabel(f'{coord_labels[j-1]}:')
-                        if label.text() == 'Lat:':
-                            self.lat_labels.append(label)
-                        if label.text() == 'Long:':
-                            self.long_labels.append(label)
-                        if label.text() == 'Alt:':
-                            self.height_label.append(label)
-                        layout.addWidget(label, j, i * 4)
+            # Add the 'lat:', 'long:', 'alt:' labels
+            for j in range(1, 6):
+                if j < 4:
+                    label = QLabel(f'{coord_labels[j - 1]}:')
+                    if block_label == 'BS3:':
+                        self.bs3_elements.append(label)
+                        self.bs3_elements.append(label)
+                        self.bs3_elements.append(label)
+                    layout.addWidget(label, j, i * 4)
 
-                # Add the text inputs for 'x', 'y', 'z'
-                for j in range(1, 4):
-                    input = QLineEdit()
-                    input.setText(temp[i][j - 1])
-                    layout.addWidget(input, j, i * 4 + 1)
-                    self.input_fields.append(input)  # Keep track of input fields
+            # Add the text inputs for 'lat', 'long', 'alt'
+            for j in range(1, 4):
+                input = QLineEdit()
+                layout.addWidget(input, j, i * 4 + 1)
+                self.input_fields.append(input)  # Keep track of input fields
+                if block_label == 'BS3:':
+                    self.bs3_elements.append(input)
+
+        self.load_file('initial_setup.json')
+
+
 
         save_button = QPushButton("Save")
         save_button.clicked.connect(lambda: self.on_save_clicked())  # Connect the button to the slot
@@ -204,32 +178,61 @@ class MainWindow(QMainWindow):
 
     def initUserInfo(self):
         layout = QGridLayout()
-        user_info = QLabel("Info:")
+        user_info = QLabel("User Info:")
         layout.addWidget(user_info, 0, 0)
-        block_labels = ['BS0:', 'BS1:', 'BS2:', 'BS3:', 'MS:']
-        """values = [['5621990', '636646', '100'], ['5616452', '636456', '0'], ['5618652', '640156', '0'],
-                  ['5619990', '636346', '200'], ['5618222', '637900', '180']]"""
-        values = [['49.46941666666667', '11.067777777777778', '100'], ['49.45769444444445', '11.08913888888889', '0'], ['49.459694444444445', '11.060194444444445', '0'],
-                  ['49.459694444444445', '11.060194444444445', '200'], ['49.459250000000004', '11.074583333333333', '180']]
-        deg_values = [[50.683093, 10.933442, 100], [50.690786, 10.933712, 400], [50.689108, 10.928814, 250]]
+        block_labels = ['BS0:', 'BS1:', 'BS2:', 'BS3:', 'MS:', 'MS_Conv:']
+        coord_labels = ['Lat', 'Long', 'Alt']
 
+        self.conv_values = self.convert_input_field()
+
+        # result_label counter
+        c = 0
         for i, block_label in enumerate(block_labels):
             # Add the block label
-            layout.addWidget(QLabel(block_label), i * 4 + 1, 0)
+            label = QLabel(block_label)
+            if block_label == 'BS3:':
+                self.bs3_elements.append(label)
 
+            layout.addWidget(label, i * 4 + 1, 0)
             bs_labels_tmp = []
             # Add the 'x:', 'y:', 'z:' labels
             for j in range(1, 4):
-                layout.addWidget(QLabel(f'{chr(120 + j - 1)}:'), i * 4 + j + 1, 0)
-                if i < 4:
-                    label = QLabel(f'{values[i][j - 1]}')
+                if block_label == 'BS3:':
+                    label = QLabel(f'{chr(120 + j - 1)}:')
+                    layout.addWidget(label, i * 4 + j + 1, 0)
+                    self.bs3_elements.append(label)
+                elif i == len(block_labels) - 1:
+                    layout.addWidget(QLabel(coord_labels[j - 1]), i * 4 + j + 1, 0)
+                else:
+                    layout.addWidget(QLabel(f'{chr(120 + j - 1)}:'), i * 4 + j + 1, 0)
+                if i < 4 and not block_label == 'BS3:':
+                    label = QLabel(str(self.conv_values[i][j - 1]))
                     bs_labels_tmp.append(label)
                     layout.addWidget(label, i * 4 + j + 1, 1)
+                elif i < 4 and block_label == 'BS3:':
+                    label = QLabel(str(self.conv_values[i][j - 1]))
+                    bs_labels_tmp.append(label)
+                    self.bs3_elements.append(label)
+                    layout.addWidget(label, i * 4 + j + 1, 1)
+
                 else:
                     self.result_labels.append(QLabel('-'))
-                    layout.addWidget(self.result_labels[j-1], i * 4 + j + 1, 1)
+                    layout.addWidget(self.result_labels[c], i * 4 + j + 1, 1)
+                    c += 1
+
             self.bs_labels.append(bs_labels_tmp)
         return layout
+
+    def convert_input_field(self):
+        values = []
+        conv_values = []
+        for i, input in enumerate(self.input_fields):
+            if i % 3 == 0 and i < len(self.input_fields) - 2:
+                values.append([float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                               float(self.input_fields[i + 2].text())])
+        for value in values:
+            conv_values.append(w2k(value[0], value[1], value[2]))
+        return conv_values
 
     def initCalculationInput(self):
         layout = QGridLayout()
@@ -237,15 +240,12 @@ class MainWindow(QMainWindow):
         calc_button.clicked.connect(lambda: self.on_calc_clicked(self.web))
         comp_button = QPushButton("Compare")
         comp_button.clicked.connect(lambda: self.on_compare_clicked(self.web))
-        #dropdown = QComboBox()
-        #dropdown.addItem("Foy")
+        # dropdown = QComboBox()
+        # dropdown.addItem("Foy")
         mode_switch = QPushButton("Mode: 4BS")
         mode_switch.clicked.connect(lambda: self.on_mode_switch_clicked(mode_switch))
-        self.unit_switch = QPushButton("Unit: Deg")
-        self.unit_switch.clicked.connect(lambda: self.on_unit_switch_clicked(self.unit_switch))
-        #layout.addWidget(dropdown, 0, 0)
+        # layout.addWidget(dropdown, 0, 0)
         layout.addWidget(mode_switch, 1, 0)
-        layout.addWidget(self.unit_switch, 2, 0)
         layout.addWidget(calc_button, 3, 0)
         layout.addWidget(comp_button, 4, 0)
         return layout
@@ -266,7 +266,8 @@ class MainWindow(QMainWindow):
                 ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
                       float(self.input_fields[i + 2].text())]
         bs.append(ms)
-        print(f'\nBS0: {bs[0][0], bs[1][0], bs[2][0]}\nBS1: {bs[0][1], bs[1][1], bs[2][1]}\nBS2: {bs[0][2], bs[1][2], bs[2][2]}\nBS3: {bs[0][3], bs[1][3], bs[2][3]}\n')
+        print(
+            f'\nBS0: {bs[0][0], bs[1][0], bs[2][0]}\nBS1: {bs[0][1], bs[1][1], bs[2][1]}\nBS2: {bs[0][2], bs[1][2], bs[2][2]}\nBS3: {bs[0][3], bs[1][3], bs[2][3]}\n')
         print(f'Real target position: {ms}\n')
         solver = Foy(bs, ms)
         solver.solve()
@@ -275,13 +276,12 @@ class MainWindow(QMainWindow):
         print(f'Estimated target position (TDOA: Foy):\n{solution}\n\nError: {error}\n')
         solver = Tdoah(bs, ms)
         solution = solver.solve()
-        #print(f"Solver Done\n{solution}")
+        # print(f"Solver Done\n{solution}")
         try:
             error = [abs(solution[0][0] - ms[0]), abs(solution[1][0] - ms[1]), abs(solution[2][0] - ms[2])]
         except Exception as e:
             print(f'Error: {e}')
         print(f'Estimated target position (TDOAH):\n{solution}\n\nError: {error}')
-
 
     def on_mode_switch_clicked(self, button):
         try:
@@ -311,11 +311,12 @@ class MainWindow(QMainWindow):
                     label.setText("Z:")
                 for i, input in enumerate(self.input_fields):
                     if i % 3 == 0:
-                        x, y, z = w2k(float(self.input_fields[i].text()), float(self.input_fields[i+1].text()), float(self.input_fields[i+2].text()))
+                        x, y, z = w2k(float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                                      float(self.input_fields[i + 2].text()))
                         print(f'x: {x}, y: {y}, z: {z}')
                         self.input_fields[i].setText(str(x))
-                        self.input_fields[i+1].setText(str(y))
-                        self.input_fields[i+2].setText(str(z))
+                        self.input_fields[i + 1].setText(str(y))
+                        self.input_fields[i + 2].setText(str(z))
 
             else:
                 button.setText("Unit: Deg")
@@ -329,7 +330,7 @@ class MainWindow(QMainWindow):
                 for i, input in enumerate(self.input_fields):
                     if i % 3 == 0:
                         fi, la, alt = k2w(float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
-                                      float(self.input_fields[i + 2].text()))
+                                          float(self.input_fields[i + 2].text()))
                         print(f'fi: {fi}, la: {la}, alt: {alt}')
                         self.input_fields[i].setText(str(fi))
                         self.input_fields[i + 1].setText(str(la))
@@ -339,31 +340,28 @@ class MainWindow(QMainWindow):
             print(f"Error: {e}")
 
     def on_load_clicked(self):
-        # Open file dialog to select JSON file
+        # Open file dialog to select JSON file and safe filename as variable
         file_path, _ = QFileDialog.getOpenFileName(None, "Open File", "", "JSON Files (*.json);;All Files (*)")
+        if file_path: self.json_file = os.path.basename(file_path)
+        self.load_file(file_path)
+
+    def load_file(self, file_path):
         try:
-            temp = [['5621990', '636646', '0'], ['5616452', '636456', '0'], ['5618652', '640156', '0'],
-                    ['5619990', '636346', '200']]
-            if file_path:
-                self.json_file = os.path.basename(file_path)
             with open(file_path, 'r') as json_file:
                 data = json.load(json_file)
-                print(f'data: {data}')
+                #print(f'data: {data}')
                 for i, input_field in enumerate(self.input_fields):
                     i1 = i // 3
                     i2 = i % 3 + 1
-                    print(f'i1: {i1}, i2: {i2}')
+                    #print(f'i1: {i1}, i2: {i2}')
                     # temp.append(data[str(i1)][str(i2)])
                     test = data[f'{i1}'][f'{i2}']
                     # Temporary solution
                     input_field.setText(str(test))
-
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             print("File not found.")
         except json.JSONDecodeError:
-            print("Invalid JSON format.")
-        except Exception as e:
-            print(f"Error: {e}")
+            print("Invalid JSON format")
 
     def on_save_clicked(self):
         # Collect data from input fields
@@ -416,29 +414,23 @@ class MainWindow(QMainWindow):
                 num = 4
             points = [[] for _ in range(num)]
             for i in range(num):
-                print(f'i: {i}')
                 points[i] = [0 for _ in range(3)]
-            count = 0
-            print(f'points: {points}')
-            print(f'last input: {self.input_fields[len(self.input_fields)-1].text()}')
-            points[num-1] = [float(self.input_fields[len(self.input_fields)-3].text()), float(self.input_fields[len(self.input_fields)-2].text()), float(self.input_fields[len(self.input_fields)-1].text())]
-            print(f'Points: {points}')
+            points[num - 1] = [float(self.input_fields[len(self.input_fields) - 3].text()),
+                               float(self.input_fields[len(self.input_fields) - 2].text()),
+                               float(self.input_fields[len(self.input_fields) - 1].text())]
+            self.conv_values = self.convert_input_field()
             for i, input_field in enumerate(self.input_fields):
                 if self.mode == "3BS" and i > 8:
                     break
                 else:
                     i1 = i // 3
                     i2 = i % 3
-                    # why did i do that????
-                    """if i1 == 4:
-                        i1 = i1 - 1"""
-                    print(f'i1: {i1}, i2: {i2}')
                     points[i1][i2] = input_field.text()
 
                 if i1 < 4 and i2 < 3:
-                    self.bs_labels[i1][i2].setText(input_field.text())
+                    self.bs_labels[i1][i2].setText(str(self.conv_values[i1][i2]))
 
-            print(f"Points: {points}")
+            # print(f"Points: {points}")
             self.generated_map.update(points)
             web.reload()
         except Exception as e:
@@ -446,30 +438,16 @@ class MainWindow(QMainWindow):
 
     def on_calc_clicked(self, web):
         try:
+            ms = self.conv_values.pop()
+            bs = self.conv_values
             if self.mode == "4BS":
-                if self.unit == "Deg":
-                    self.on_unit_switch_clicked(self.unit_switch)
-                bs = [[], [], []]
-                ms = []
-                print(f"Input fields: {self.input_fields}")
-                for i, input in enumerate(self.input_fields):
-                    print(f'i: {i}, input: {input.text()}')
-                    if i < len(self.input_fields)-3:
-                        if i%3 == 0:
-                            bs[0].append(float(input.text()))
-                        elif i%3 == 1:
-                            bs[1].append(float(input.text()))
-                        elif i%3 == 2:
-                            bs[2].append(float(input.text()))
-                    if i == len(self.input_fields)-3:
-                        ms = [float(self.input_fields[i].text()), float(self.input_fields[i+1].text()), float(self.input_fields[i+2].text())]
-                bs.append(ms)
                 print(f"Solver input: {bs, ms}")
                 solver = Foy(bs, ms)
+                print("Not the Setup")
                 solver.solve()
                 print(f"Solver output: {solver.guesses}")
-                for i,label in enumerate(self.result_labels):
-                    label.setText(str(solver.guesses[i][len(self.result_labels)-1]))
+                for i, label in enumerate(self.result_labels):
+                    label.setText(str(solver.guesses[i][len(self.result_labels) - 1]))
 
                 print(f"Solver output: {solver.guesses}")
                 self.generated_map.show_result(solver.guesses)
@@ -477,23 +455,6 @@ class MainWindow(QMainWindow):
                 # Update the map
                 web.reload()
             elif self.mode == "3BS":
-                os.system('cls')
-                #self.calculate_height()
-                bs = [[], [], []]
-                ms = []
-                print(f"Input fields: {self.input_fields}")
-                for i, input in enumerate(self.input_fields):
-                    print(f'i: {i}, input: {input.text()}')
-                    if i < len(self.input_fields) - 6:
-                        if i % 3 == 0:
-                            bs[0].append(float(input.text()))
-                        elif i % 3 == 1:
-                            bs[1].append(float(input.text()))
-                        elif i % 3 == 2:
-                            bs[2].append(float(input.text()))
-                    if i == len(self.input_fields) - 3:
-                        ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
-                              float(self.input_fields[i + 2].text())]
                 print(f"Solver input: {bs, ms}")
                 solver = Tdoah(bs, ms)
                 target = solver.solve()
@@ -504,12 +465,34 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f'Error: {e}')
 
+    def get_solver_input(self):
+        bs = [[], [], []]
+        ms = []
+        print(f"Input fields: {self.input_fields}")
+        for i, input in enumerate(self.input_fields):
+            print(f'i: {i}, input: {input.text()}')
+            if i < len(self.input_fields) - 3:
+                if i % 3 == 0:
+                    bs[0].append(float(input.text()))
+                elif i % 3 == 1:
+                    bs[1].append(float(input.text()))
+                elif i % 3 == 2:
+                    bs[2].append(float(input.text()))
+            if i == len(self.input_fields) - 3:
+                ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                      float(self.input_fields[i + 2].text())]
+        if self.mode == '3BS':
+            for e in bs:
+                e.pop()
+
+        return bs, ms
+
     def calculate_height(self):
         heights = []
         try:
-            for i in range(1, len(self.input_fields)+1):
+            for i in range(1, len(self.input_fields) + 1):
                 if i % 3 == 0 and not i == 0:
-                    heights.append(int(self.input_fields[i-1].text()))
+                    heights.append(int(self.input_fields[i - 1].text()))
 
             for i, height in enumerate(heights):
                 self.res_labels[i].setText(str(pvlib.atmosphere.pres2alt(height)))
@@ -525,7 +508,7 @@ class MainWindow2(QMainWindow):
         self.view = QWebEngineView(self)
         self.view.load(QUrl.fromLocalFile("/terrain_map.html"))
 
-        #self.setCentralWidget(self.view)
+        # self.setCentralWidget(self.view)
         self.create_base_station_cards()
 
     def create_base_station_cards(self):
@@ -543,7 +526,7 @@ class MainWindow2(QMainWindow):
             card_x = self.view.x() + x  # Adjust as needed
             card_y = self.view.y() + y
 
-            #card.setGeometry(card_x, card_y, card.sizeHint().width(), card.sizeHint().height())
+            # card.setGeometry(card_x, card_y, card.sizeHint().width(), card.sizeHint().height())
             card.show()
 
 
@@ -568,4 +551,3 @@ class BaseStationCard(QWidget):
                 border-radius: 5px;
             }
         """)
-
