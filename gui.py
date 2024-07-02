@@ -438,16 +438,28 @@ class MainWindow(QMainWindow):
 
     def on_calc_clicked(self, web):
         try:
+            ms = []
             ms = self.conv_values.pop()
             bs = self.conv_values
             if self.mode == "4BS":
-                print(f"Solver input: {bs, ms}")
-                solver = Foy(bs, ms)
-                print("Not the Setup")
+                # bringing the input in the right form for foy
+                foy_bs = [[] for _ in range(4)]
+                for e in bs:
+                    foy_bs[0].append(e[0])
+                    foy_bs[1].append(e[1])
+                    foy_bs[2].append(e[2])
+                for e in ms:
+                    foy_bs[3].append(e)
+                ms = [ms[0], ms[1], ms[2]]
+                print(f"Solver input: {foy_bs, ms}")
+                solver = Foy(foy_bs, ms)
                 solver.solve()
                 print(f"Solver output: {solver.guesses}")
                 for i, label in enumerate(self.result_labels):
-                    label.setText(str(solver.guesses[i][len(self.result_labels) - 1]))
+                    if i < 3:
+                        print(i)
+                        print(len(self.result_labels))
+                        label.setText(str(solver.guesses[i][len(solver.guesses) - 1]))
 
                 print(f"Solver output: {solver.guesses}")
                 self.generated_map.show_result(solver.guesses)
