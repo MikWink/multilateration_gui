@@ -432,7 +432,7 @@ def tdoah(bs, ms):
 
 
 
-#tdoah()
+"""tdoah()
 realTarget = [3999117.68, 963774.50, 4864491.90]
 convRealTarget = k2w(realTarget[0], realTarget[1], realTarget[2])
 if DEBUG:
@@ -440,4 +440,4 @@ if DEBUG:
 realTargetDMS = [49.97027778, 13.54972222]
 convRealTarget = w2k(realTargetDMS[0], realTargetDMS[1], 5000)
 if DEBUG:
-    print(convRealTarget)
+    print(convRealTarget)"""

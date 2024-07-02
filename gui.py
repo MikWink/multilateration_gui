@@ -61,6 +61,10 @@ class MainWindow(QMainWindow):
 
     def initEvalInput(self):
         layout = QGridLayout()
+        layout_right = QGridLayout()
+        layout_left = QGridLayout()
+        widget_right = QWidget()
+        widget_left = QWidget()
 
         # TDOA Std Slider
         tdoa_std_slider = QSlider(Qt.Horizontal)
@@ -85,36 +89,45 @@ class MainWindow(QMainWindow):
 
         # Start button
         start_button = QPushButton("Start")
+        start_button.clicked.connect(
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text())))
 
         # Eval output
         tdoa_deviation = QLabel("-")
         baro_deviation = QLabel("-")
         start_eval_btn = QPushButton("Start")
-        start_eval_btn.clicked.connect(lambda: self.on_eval_clicked(self.web, tdoa_deviation, baro_deviation))
+        start_eval_btn.clicked.connect(
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text())))
 
-        layout.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
-        layout.addWidget(QLabel("TDOA"), 1, 3)
-        layout.addWidget(QLabel("Baro"), 1, 4)
-        layout.addWidget(tdoa_deviation, 2, 3)
-        layout.addWidget(baro_deviation, 2, 4)
-        layout.addWidget(start_eval_btn, 3, 4)
+        layout_right.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
+        layout_right.addWidget(QLabel("TDOA"), 1, 3)
+        layout_right.addWidget(QLabel("Baro"), 1, 4)
+        layout_right.addWidget(tdoa_deviation, 2, 3)
+        layout_right.addWidget(baro_deviation, 2, 4)
+        layout_right.addWidget(start_eval_btn, 3, 4)
+        widget_right.setLayout(layout_right)
 
         # Adding Widgets
-        layout.addWidget(QLabel("TDOA Std:"), 0, 0)
-        layout.addWidget(iterations_label, 0, 2)
-        layout.addWidget(tdoa_std_slider, 1, 0)
-        layout.addWidget(tdoa_std_label, 1, 1)
-        layout.addWidget(iterations_input, 1, 2)
-        layout.addWidget(QLabel("Baro Std:"), 2, 0)
-        layout.addWidget(baro_std_slider, 3, 0)
-        layout.addWidget(baro_std_label, 3, 1)
-        layout.addWidget(start_button, 3, 2)
+        layout_left.addWidget(QLabel("TDOA Std:"), 0, 0)
+        layout_left.addWidget(iterations_label, 0, 2)
+        layout_left.addWidget(tdoa_std_slider, 1, 0)
+        layout_left.addWidget(tdoa_std_label, 1, 1)
+        layout_left.addWidget(iterations_input, 1, 2)
+        layout_left.addWidget(QLabel("Baro Std:"), 2, 0)
+        layout_left.addWidget(baro_std_slider, 3, 0)
+        layout_left.addWidget(baro_std_label, 3, 1)
+        layout_left.addWidget(start_button, 3, 2)
+        widget_left.setLayout(layout_left)
+
+        layout.addWidget(widget_left, 0, 0)
 
         return layout
 
-    def on_eval_clicked(self, web, tdoa_deviation, baro_deviation):
-        tdoa_deviation.setText("Hello")
-        baro_deviation.setText("World")
+    def on_eval_clicked(self, web, tdoa_std, baro_std):
+        ms = self.conv_values.pop()
+        bs = self.conv_values
+        ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
+        print(f'bs: {bs}\nms: {ms}\nms_h: {ms_h}')
 
     def on_value_changed(self, slider, label):
         label.setText(str(slider.value()))
@@ -161,8 +174,6 @@ class MainWindow(QMainWindow):
                     self.bs3_elements.append(input)
 
         self.load_file('initial_setup.json')
-
-
 
         save_button = QPushButton("Save")
         save_button.clicked.connect(lambda: self.on_save_clicked())  # Connect the button to the slot
@@ -349,11 +360,11 @@ class MainWindow(QMainWindow):
         try:
             with open(file_path, 'r') as json_file:
                 data = json.load(json_file)
-                #print(f'data: {data}')
+                # print(f'data: {data}')
                 for i, input_field in enumerate(self.input_fields):
                     i1 = i // 3
                     i2 = i % 3 + 1
-                    #print(f'i1: {i1}, i2: {i2}')
+                    # print(f'i1: {i1}, i2: {i2}')
                     # temp.append(data[str(i1)][str(i2)])
                     test = data[f'{i1}'][f'{i2}']
                     # Temporary solution
@@ -441,6 +452,7 @@ class MainWindow(QMainWindow):
             ms = []
             ms = self.conv_values.pop()
             bs = self.conv_values
+            ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
             if self.mode == "4BS":
                 # bringing the input in the right form for foy
                 foy_bs = [[] for _ in range(4)]
@@ -468,7 +480,7 @@ class MainWindow(QMainWindow):
                 web.reload()
             elif self.mode == "3BS":
                 print(f"Solver input: {bs, ms}")
-                solver = Tdoah(bs, ms)
+                solver = Tdoah(bs, ms, ms_h)
                 target = solver.solve()
                 print(f'Final: {target}')
                 self.generated_map.show_result(target)
