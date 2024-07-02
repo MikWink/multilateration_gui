@@ -95,10 +95,7 @@ class Foy:
         return center
 
     def calculate_tdoa_s(self):
-        print(f'BS_list: {self.bs_list}')
-        print(f'MS_list: {self.ms}')
-        for i in range(3):
-            print(i)
+        for i in range(4):
             self.R_i_real[i] = math.sqrt(
                 (self.bs_list[i][0] - self.ms[0]) ** 2 + (self.bs_list[i][1] - self.ms[1]) ** 2 + (
                         self.bs_list[i][2] - self.ms[2]) ** 2)
@@ -108,8 +105,8 @@ class Foy:
                 (self.bs_list[0][0] - self.ms[0]) ** 2 + (self.bs_list[0][1] - self.ms[1]) ** 2 + (
                         self.bs_list[0][2] - self.ms[2]) ** 2)
 
-        print(f"R_i: {self.R_i_real}")
-        print(f"R_i_0: {self.R_i_0}\n")
+        #print(f"R_i: {self.R_i_real}")
+        #print(f"R_i_0: {self.R_i_0}\n")
 
     def convert_coordinates(self):
         for bs in self.bs_list:
@@ -123,18 +120,70 @@ class Foy:
         i = 0
         delta = [100, 100, 100]
         while i < 20 and abs(sum(delta)) > 0.01:
-            print(f"Step {i + 1}")
+            #print(f"Step {i + 1}")
             self.calculate_R_i_guess()
-            print("Calculated R_i_guess")
+            #print("Calculated R_i_guess")
             self.calculate_tdoa_s()
-            print("Calculated tdoa_s")
+            #print("Calculated tdoa_s")
             self.calculate_h()
-            print("Calculated h")
+            #print("Calculated h")
             self.calculate_G()
-            print("Calculated G")
+            #print("Calculated G")
             delta = self.calculate_deltaXY()
-            print(delta[0])
+            #print(delta[0])
             self.update_x_y()
             i += 1
 
+"""
+bs = [[5621990, 5616452, 5618652, 5619990], [636646, 636456, 640156, 636346], [100, 0, 0, 200], [5618222, 637900, 180]]
+ms = [5618222, 637900, 180]
+solver = Foy(bs, ms)
+solver.solve()
+print(solver.guesses)
+"""
+"""
+BS0 = np.array([49.449010, 11.064284, 0])
+BS1 = np.array([49.457646, 11.088916, 0])
+BS2 = np.array([49.447273, 11.088916, 0])
+BS3 = np.array([49.452778, 11.077613, 500])
+MS = np.array([49.449611, 11.075628, 300.57])
 
+bs_list = [BS0, BS1, BS2, BS3, MS]
+converted_bs = []
+R_i_0 = [0, 0, 0, 0]
+R_i_real = [0, 0, 0, 0]
+R_i_guess = [0, 0, 0, 0]
+
+h = np.zeros(3)
+G = np.zeros((3, 3))
+
+deltaXY = np.zeros(3)
+
+guessed_position = [650745.995, 5479748.09, 250.]
+
+
+
+
+print(f"Coordinates (lat/lon/alt):\nBS0: {BS0}\nBS1: {BS1}\nBS2: {BS2}\nBS3: {BS3}\nMS: {MS}\n")
+
+points = [[5621990, 636646, 0], [5616452, 636456, 0], [5618652, 640156, 0], [5619990, 636346, 200]]
+make_init_guess(points)
+i = 0
+guesses = [[],[],[]]
+delta = [100, 100, 100]
+while i < 20 and abs(sum(delta)) > 0.01:
+    print(f"Step {i+1}")
+    guesses[0].append(guessed_position[0])
+    guesses[1].append(guessed_position[1])
+    guesses[2].append(guessed_position[2])
+    calculate_R_i_guess()
+    calculate_tdoa_s()
+    calculate_h()
+    calculate_G()
+    delta = calculate_deltaXY()
+    print(delta[0])
+    update_x_y()
+    i += 1
+
+print(guesses)
+"""
