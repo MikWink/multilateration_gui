@@ -90,14 +90,14 @@ class MainWindow(QMainWindow):
         # Start button
         start_button = QPushButton("Start")
         start_button.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text())))
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text()), int(iterations_input.text())))
 
         # Eval output
         tdoa_deviation = QLabel("-")
         baro_deviation = QLabel("-")
         start_eval_btn = QPushButton("Start")
         start_eval_btn.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text())))
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text()), int(iterations_input.text())))
 
         layout_right.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
         layout_right.addWidget(QLabel("TDOA"), 1, 3)
@@ -123,11 +123,25 @@ class MainWindow(QMainWindow):
 
         return layout
 
-    def on_eval_clicked(self, web, tdoa_std, baro_std):
+    def on_eval_clicked(self, web, tdoa_std, baro_std, n):
+        target_list = [[] for _ in range(3)]
         ms = self.conv_values.pop()
         bs = self.conv_values
         ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
-        print(f'bs: {bs}\nms: {ms}\nms_h: {ms_h}')
+        tdoa_vals = np.random.normal(0, tdoa_std, n)
+        baro_vals = np.random.normal(0, baro_std, n)
+        for i in range(n):
+            solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], baro_vals[i])
+            target = solver.solve()
+
+            print(target_list)
+            target_list[0].append(target[0][0])
+            target_list[1].append(target[1][0])
+            target_list[2].append(target[2][0])
+
+        print(target_list)
+        self.generated_map.show_result(target_list)
+        web.reload()
 
     def on_value_changed(self, slider, label):
         label.setText(str(slider.value()))

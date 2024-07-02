@@ -1,7 +1,7 @@
 import numpy as np
 
 class Tdoah:
-    def __init__(self, bs, ms, ms_h):
+    def __init__(self, bs, ms, ms_h, tdoa_std=0, baro_std=0):
         self.bs = bs
         self.ms = ms
         self.ms_h = ms_h
@@ -10,6 +10,8 @@ class Tdoah:
         self.A = 6378137
         self.B = 0.00669438000426
         self.C = 0.99330561999574
+        self.tdoa_std = tdoa_std
+        self.baro_std = baro_std
 
     def solve(self):
         P0 = (self.bs[0])
@@ -46,8 +48,8 @@ class Tdoah:
 
         print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
 
-        r_0_1 = (t_1 - t_0) * self.cl
-        r_0_2 = (t_2 - t_0) * self.cl
+        r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std
+        r_0_2 = ((t_2 - t_0) * self.cl) + self.baro_std
 
         # Translate coordinates
         x1 = locations_cartesian["P1"][0] - locations_cartesian["P0"][0]
@@ -152,7 +154,6 @@ class Tdoah:
         print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
         solution_conv = solution[0], solution[1], solution[2]
         print("All done, returning values...")
-        print(solution_wgs)
         return [[solution_wgs[0]], [solution_wgs[1]], [solution_wgs[2]]]
 
     def tdoaell(self, a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
