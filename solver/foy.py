@@ -5,9 +5,11 @@ import math
 from transformer import CoordinateTransformer
 
 class Foy:
-    def __init__(self, bs_list, ms):
+    def __init__(self, bs_list, ms, tdoa_std=0, baro_std=0):
         self.bs_list = bs_list
         self.ms = ms
+        self.tdoa_std = tdoa_std
+        self.baro_std = baro_std
         self.h = np.zeros(3)
         self.G = np.zeros((3, 3))
         self.deltaXY = np.zeros(3)
@@ -95,15 +97,20 @@ class Foy:
         return center
 
     def calculate_tdoa_s(self):
+        #print(f'TDOA_STD: {self.tdoa_std}')
         for i in range(4):
             self.R_i_real[i] = math.sqrt(
                 (self.bs_list[i][0] - self.ms[0]) ** 2 + (self.bs_list[i][1] - self.ms[1]) ** 2 + (
                         self.bs_list[i][2] - self.ms[2]) ** 2)
-            self.R_i_0[i] = math.sqrt(
+            self.R_i_0[i] = (math.sqrt(
                 (self.bs_list[i][0] - self.ms[0]) ** 2 + (self.bs_list[i][1] - self.ms[1]) ** 2 + (
                         self.bs_list[i][2] - self.ms[2]) ** 2) - math.sqrt(
                 (self.bs_list[0][0] - self.ms[0]) ** 2 + (self.bs_list[0][1] - self.ms[1]) ** 2 + (
-                        self.bs_list[0][2] - self.ms[2]) ** 2)
+                        self.bs_list[0][2] - self.ms[2]) ** 2))
+
+        #print(f"R_i_0: {self.R_i_0}\n")
+        for i, t in enumerate(self.R_i_0):
+            self.R_i_0[i] += self.tdoa_std
 
         #print(f"R_i: {self.R_i_real}")
         #print(f"R_i_0: {self.R_i_0}\n")

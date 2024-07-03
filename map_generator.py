@@ -113,9 +113,9 @@ class Map:
         mapped_value = ((value - min_value) / (max_value - min_value)) * (new_max - new_min) + new_min
         return mapped_value
 
-    def show_result(self, points):
+    def show_result(self, points, color='green', mode='lines+markers', eval_flag=False):
         try:
-            if len(self.fig.data) > 3:
+            if len(self.fig.data) > 3 and not eval_flag == True:
                 data = list(self.fig.data)
                 # print(f"Data: {data}")
                 data.pop(1)
@@ -123,32 +123,32 @@ class Map:
 
         except Exception as e:
             print(f"Error: {e}")
-        print(f"show_result: {points}")
+        #print(f"show_result: {points}")
 
-        print('\n#######')
-        print(f'Points: {points}')
+        #print('\n#######')
+        #print(f'Points: {points}')
         points_conv = [[], [], []]
         # Converting coordinates in lat, lon
         for i, point in enumerate(points[0]):
-            print(f'i: {i}')
+            #print(f'i: {i}')
             fi, la, h = k2w(points[0][i], points[1][i], points[2][i])
             points_conv[0].append(fi)
             points_conv[1].append(la)
-            print(f'Conv: {fi}, {la}, {h}')
+            #print(f'Conv: {fi}, {la}, {h}')
 
-        print(f'Points_conv: {points_conv}')
+        #print(f'Points_conv: {points_conv}')
         points_z = []
 
         for i, point in enumerate(points_conv[0]):
             mapped_x = round(self.map_value(points_conv[1][i], 10.875, 11, 0, self.imarray.shape[1]))
             mapped_y = round(self.map_value(points_conv[0][i], 50.625, 50.75, 0, self.imarray.shape[0]))
-            print(f'Test: {self.imarray[mapped_y][mapped_x] + point}')
+            #print(f'Test: {self.imarray[mapped_y][mapped_x] + point}')
             points_z.append(self.imarray[mapped_y][mapped_x] + h)
 
-        print(f'z: {points_z}')
+        #print(f'z: {points_z}')
 
-        self.fig.add_trace(go.Scatter3d(x=points_conv[1], y=points_conv[0], z=points_z, name="Localisation",
-                                        marker=dict(symbol='cross', size=5, color='green'), showlegend=False))
+        self.fig.add_trace(go.Scatter3d(x=points_conv[1], y=points_conv[0], z=points_z, name="Localisation", mode=mode,
+                                        marker=dict(symbol='cross', size=5, color=color), showlegend=False))
         # Generate the HTML string of the figure
         html_string = pyo.plot(self.fig, include_plotlyjs='cdn', output_type='div')
 

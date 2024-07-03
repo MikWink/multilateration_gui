@@ -1,16 +1,17 @@
 import numpy as np
 
 class Tdoah:
-    def __init__(self, bs, ms, ms_h, tdoa_std=0, baro_std=0):
+    def __init__(self, bs, ms, ms_h, tdoa_std_1=0, tdoa_std_2=0, baro_std=0):
         self.bs = bs
         self.ms = ms
         self.ms_h = ms_h
-        print(f'BS: {self.bs}\nMS: {self.ms}\n')
+        #print(f'BS: {self.bs}\nMS: {self.ms}\n')
         self.cl = np.longdouble(3e8)
         self.A = 6378137
         self.B = 0.00669438000426
         self.C = 0.99330561999574
-        self.tdoa_std = tdoa_std
+        self.tdoa_std_1 = tdoa_std_1
+        self.tdoa_std_2 = tdoa_std_2
         self.baro_std = baro_std
 
     def solve(self):
@@ -27,7 +28,7 @@ class Tdoah:
         target = self.ms[0], self.ms[1], self.ms[2]
 
         target_cartesian = target
-        print(f'loc_cart: {locations_cartesian}\ntarget_cart: {target_cartesian}\n')
+        #print(f'loc_cart: {locations_cartesian}\ntarget_cart: {target_cartesian}\n')
 
         # Calculate TDOA values
         r_0 = np.sqrt((target_cartesian[0] - locations_cartesian["P0"][0]) ** 2 + (
@@ -40,16 +41,18 @@ class Tdoah:
                 target_cartesian[1] - locations_cartesian["P2"][1]) ** 2 + (
                               target_cartesian[2] - locations_cartesian["P2"][2]) ** 2)
 
-        print(f'r_0: {r_0}\nr_1: {r_1}\nr_2: {r_2}\n')
+        #print(f'r_0: {r_0}\nr_1: {r_1}\nr_2: {r_2}\n')
 
         t_0 = 1/self.cl * r_0
         t_1 = 1/self.cl * r_1
         t_2 = 1/self.cl * r_2
 
-        print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
+        #print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
 
-        r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std
-        r_0_2 = ((t_2 - t_0) * self.cl) + self.baro_std
+        r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std_1
+        r_0_2 = ((t_2 - t_0) * self.cl) + self.tdoa_std_2
+
+        print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
 
         # Translate coordinates
         x1 = locations_cartesian["P1"][0] - locations_cartesian["P0"][0]
@@ -59,7 +62,7 @@ class Tdoah:
         y2 = locations_cartesian["P2"][1] - locations_cartesian["P0"][1]
         z2 = locations_cartesian["P2"][2] - locations_cartesian["P0"][2]
 
-        print(f'x1: {x1}\nx2: {x2}\ny1: {y1}\ny2: {y2}\nz1: {z1}\nz2: {z2}\n')
+        #print(f'x1: {x1}\nx2: {x2}\ny1: {y1}\ny2: {y2}\nz1: {z1}\nz2: {z2}\n')
 
         # Calculate the rotation matrix
         a11 = -x1 / (np.sqrt(x1 ** 2 + y1 ** 2 + z1 ** 2))
@@ -86,27 +89,31 @@ class Tdoah:
         b = a11 * x2 + a12 * y2 + a13 * z2
         c = a21 * x2 + a22 * y2 + a23 * z2
 
-        print(f'a: {a}\nb: {b}\nc: {c}\n')
-        print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
+        #print(f'a: {a}\nb: {b}\nc: {c}\n')
+        #print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
         # Calculate A, B, C, D
         A = (a ** 2 - r_0_1 ** 2) / (2 * a)
         B = -r_0_1 / a
         C = (c ** 2 + b ** 2 - 2 * A * b - r_0_2 ** 2) / (2 * c)
         D = (-B * b - r_0_2) / c
 
-        print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
-        print(self.ms_h)
-        U = 6378137.0 + self.ms_h
-        W = 6356752.31425 + self.ms_h
+        #print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
+        print(f'ms_h: {self.ms_h}')
+        try:
+            U = 6378137.0 + self.ms_h + self.baro_std
+            W = 6356752.31425 + self.ms_h + self.baro_std
+        except Exception as e:
+            print(f'Error: {e}')
+        #print(f'U: {U}\nW: {W}\n')
+        try:
+            KK, zx = self.tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1],
+                             locations_cartesian["P0"][2],
+                             a11, a12, a13, a21, a22, a23, a31, a32, a33, A, B, C, D)
+        except Exception as e:
+            print(f'Error: {e}')
 
-        print(f'U: {U}\nW: {W}\n')
-
-        KK, zx = self.tdoaell(U, U, W, locations_cartesian["P0"][0], locations_cartesian["P0"][1],
-                         locations_cartesian["P0"][2],
-                         a11, a12, a13, a21, a22, a23, a31, a32, a33, A, B, C, D)
-
-        print(f'KK: {KK}\n')
-        print(f'zx: {zx}\n')
+        #print(f'KK: {KK}\n')
+        #print(f'zx: {zx}\n')
 
         # Initialize arrays for calculated values with NaNs
         num_roots = len(KK)
@@ -136,24 +143,24 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    print(f'No real solution for coords: {coords}')
+                    #print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    print(f'Real solution for coords: {coords}')
+                    #print(f'Real solution for coords: {coords}')
                     solution = coords
                     solution_wgs = xxx[i], yyy[i], zzz[i]
 
-        print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
+        #print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
         solution_conv = solution[0], solution[1], solution[2]
-        print("All done, returning values...")
+        #print("All done, returning values...")
         return [[solution_wgs[0]], [solution_wgs[1]], [solution_wgs[2]]]
 
     def tdoaell(self, a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
@@ -168,8 +175,8 @@ class Tdoah:
         B6 = 2 * A3 * zc
         B7 = A4 - A1 * (xc ** 2) - A2 * (yc ** 2) - A3 * (zc ** 2)
 
-        print(f'A1: {A1}\nA2: {A2}\nA3: {A3}\nA4: {A4}\n')
-        print(f'B1: {B1}\nB2: {B2}\nB3: {B3}\nB4: {B4}\nB5: {B5}\nB6: {B6}\nB7: {B7}\n')
+        #print(f'A1: {A1}\nA2: {A2}\nA3: {A3}\nA4: {A4}\n')
+        #print(f'B1: {B1}\nB2: {B2}\nB3: {B3}\nB4: {B4}\nB5: {B5}\nB6: {B6}\nB7: {B7}\n')
 
         C1 = B1 * a11 ** 2 + B3 * a21 ** 2 + B5 * a31 ** 2
         C2 = B1 * a12 ** 2 + B3 * a22 ** 2 + B5 * a32 ** 2
@@ -182,13 +189,13 @@ class Tdoah:
         C9 = B2 * a13 + B4 * a23 + B6 * a33
         C10 = B7
 
-        print(f'C1: {C1}\nC2: {C2}\nC3: {C3}\nC4: {C4}\nC5: {C5}\nC6: {C6}\nC7: {C7}\nC8: {C8}\nC9: {C9}\nC10: {C10}\n')
+        #print(f'C1: {C1}\nC2: {C2}\nC3: {C3}\nC4: {C4}\nC5: {C5}\nC6: {C6}\nC7: {C7}\nC8: {C8}\nC9: {C9}\nC10: {C10}\n')
 
         D1 = -A ** 2 - C ** 2
         D2 = -2 * (A * B + C * D)
         D3 = 1 - B ** 2 - D ** 2
 
-        print(f'D1: {D1}\nD2: {D2}\nD3: {D3}\n')
+        #print(f'D1: {D1}\nD2: {D2}\nD3: {D3}\n')
 
         H = C9 + C5 * A + C6 * C
         I = C5 * B + C6 * D
@@ -196,7 +203,7 @@ class Tdoah:
         F = -2 * C1 * A * B - 2 * C2 * C * D - C3 * D2 - C4 * A * D - C4 * C * B - C7 * B - C8 * D
         G = -C1 * B ** 2 - C2 * D ** 2 - C3 * D3 - C4 * B * B
 
-        print(f"H: {H}\nI: {I}\nE: {E}\nF: {F}\nG: {G}\n")
+        #print(f"H: {H}\nI: {I}\nE: {E}\nF: {F}\nG: {G}\n")
 
         # Version 1
         M1 = 2.7414562480964996e+54
@@ -214,7 +221,7 @@ class Tdoah:
         M4 = float(2 * E * F - 2 * D1 * H * I - D2 * H ** 2)
         M5 = float(E ** 2 - D1 * H ** 2)
 
-        print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
+        #print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
 
         K = self.pol4(M1, M2, M3, M4, M5)
 
@@ -316,9 +323,9 @@ class Tdoah:
         return fi, la, h
 
 
-bs = [(4039139.89, 897222.76, 4838608.59), (4027031.42, 890211.32, 4849775.99), (4047433.94, 904276.02, 4830281.62)]
+"""bs = [(4039139.89, 897222.76, 4838608.59), (4027031.42, 890211.32, 4849775.99), (4047433.94, 904276.02, 4830281.62)]
 ms = (3999117.68, 963774.50, 4864491.90)
 ms_h = 5000.0
 solver = Tdoah(bs, ms, ms_h)
 target = solver.solve()
-print("Final: " + str(target))
+print("Final: " + str(target))"""

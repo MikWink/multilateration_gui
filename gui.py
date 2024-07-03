@@ -124,23 +124,50 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
+        # do the tdoah evaluation multiple times
         target_list = [[] for _ in range(3)]
-        ms = self.conv_values.pop()
-        bs = self.conv_values
-        ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
-        tdoa_vals = np.random.normal(0, tdoa_std, n)
-        baro_vals = np.random.normal(0, baro_std, n)
-        for i in range(n):
-            solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], baro_vals[i])
-            target = solver.solve()
 
-            print(target_list)
+
+        #print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
+        tdoa_vals = np.random.normal(0, tdoa_std, n*2)
+        baro_vals = np.random.normal(0, baro_std * 10, n)
+        for i in range(n):
+            self.conv_values = self.convert_input_field(baro_vals[i])
+            ms = self.conv_values.pop()
+            bs = self.conv_values
+            ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
+            print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
+            tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i+n], baro_vals[i])
+            target = tdoah_solver.solve()
+
+            #print(target_list)
             target_list[0].append(target[0][0])
             target_list[1].append(target[1][0])
             target_list[2].append(target[2][0])
 
-        print(target_list)
-        self.generated_map.show_result(target_list)
+        #print(target_list)
+        self.generated_map.show_result(target_list, 'blue', 'markers')
+
+        # do the 4bs evaluation multiple times
+        target_list = [[] for _ in range(3)]
+        # bringing the input in the right form for foy
+        foy_bs = [[] for _ in range(4)]
+        for e in bs:
+            foy_bs[0].append(e[0])
+            foy_bs[1].append(e[1])
+            foy_bs[2].append(e[2])
+        for e in ms:
+            foy_bs[3].append(e)
+        ms = [ms[0], ms[1], ms[2]]
+        for i in range(n):
+            foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
+            foy_solver.solve()
+            target_list[0].append(foy_solver.guesses[0].pop())
+            target_list[1].append(foy_solver.guesses[1].pop())
+            target_list[2].append(foy_solver.guesses[2].pop())
+
+        #print(f'Foy Solver: {target_list}')
+        self.generated_map.show_result(target_list, 'green', 'markers')
         web.reload()
 
     def on_value_changed(self, slider, label):
@@ -248,14 +275,15 @@ class MainWindow(QMainWindow):
             self.bs_labels.append(bs_labels_tmp)
         return layout
 
-    def convert_input_field(self):
+    def convert_input_field(self, std=0):
         values = []
         conv_values = []
         for i, input in enumerate(self.input_fields):
             if i % 3 == 0 and i < len(self.input_fields) - 2:
                 values.append([float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
                                float(self.input_fields[i + 2].text())])
-        for value in values:
+        for i, value in enumerate(values):
+            print(f'ms_h_real: {value[2]}')
             conv_values.append(w2k(value[0], value[1], value[2]))
         return conv_values
 
