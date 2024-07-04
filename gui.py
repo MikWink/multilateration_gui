@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
 
         #print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
         tdoa_vals = np.random.normal(0, tdoa_std, n*2)
-        baro_vals = np.random.normal(0, baro_std * 10, n)
+        baro_vals = np.random.normal(0, baro_std * 5, n)
         for i in range(n):
             self.conv_values = self.convert_input_field(baro_vals[i])
             ms = self.conv_values.pop()
@@ -158,15 +158,22 @@ class MainWindow(QMainWindow):
             foy_bs[2].append(e[2])
         for e in ms:
             foy_bs[3].append(e)
-        ms = [ms[0], ms[1], ms[2]]
+        try:
+            ms = [ms[0], ms[1], ms[2]]
+        except Exception as e:
+            print(f'Error: {e}')
         for i in range(n):
-            foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
-            foy_solver.solve()
+            print(f'Loop: {i}')
+            try:
+                foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
+                foy_solver.solve()
+            except Exception as e:
+                print(f'Error: {e}')
             target_list[0].append(foy_solver.guesses[0].pop())
             target_list[1].append(foy_solver.guesses[1].pop())
             target_list[2].append(foy_solver.guesses[2].pop())
 
-        #print(f'Foy Solver: {target_list}')
+        print(f'Foy Solver: {target_list}')
         self.generated_map.show_result(target_list, 'green', 'markers')
         web.reload()
 
@@ -505,18 +512,15 @@ class MainWindow(QMainWindow):
                 for e in ms:
                     foy_bs[3].append(e)
                 ms = [ms[0], ms[1], ms[2]]
-                print(f"Solver input: {foy_bs, ms}")
+                #print(f"Solver input: {foy_bs, ms}")
                 solver = Foy(foy_bs, ms)
                 solver.solve()
-                print(f"Solver output: {solver.guesses}")
-                for i, label in enumerate(self.result_labels):
-                    if i < 3:
-                        print(i)
-                        print(len(self.result_labels))
-                        label.setText(str(solver.guesses[i][len(solver.guesses) - 1]))
+                #print(f"Solver output: {solver.guesses}")
 
-                print(f"Solver output: {solver.guesses}")
+
+                #print(f"Solver output: {solver.guesses}")
                 self.generated_map.show_result(solver.guesses)
+                self.print_solution(solver.guesses)
                 # Call the calculation function
                 # Update the map
                 web.reload()
@@ -526,10 +530,25 @@ class MainWindow(QMainWindow):
                 target = solver.solve()
                 print(f'Final: {target}')
                 self.generated_map.show_result(target)
+                self.print_solution(target)
                 web.reload()
 
         except Exception as e:
             print(f'Error: {e}')
+
+    def print_solution(self, target):
+        if self.mode == "4BS":
+            x, y, z = target[0].pop(), target[1].pop(), target[2].pop()
+        else:
+            x, y, z = target[0][0], target[1][0], target[2][0]
+        for i in range(4):
+            if i < 3:
+                self.result_labels[i].setText(str(target[i].pop()))
+            else:
+                lat, long, h = k2w(x, y, z)
+                self.result_labels[i].setText(str(lat))
+                self.result_labels[i+1].setText(str(long))
+                self.result_labels[i+2].setText(str(h))
 
     def get_solver_input(self):
         bs = [[], [], []]

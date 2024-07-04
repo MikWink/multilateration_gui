@@ -32,14 +32,17 @@ class Map:
 
         # Create a 3D surface plot
         self.fig = go.Figure(
-            data=[go.Surface(x=X, y=Y, z=self.imarray, colorscale='Viridis', showscale=False, name='Terrain')],
+            data=[go.Surface(x=X, y=Y, z=self.imarray, colorscale='Viridis', showscale=False, name='Terrain',
+                             hovertemplate='<b>Lat:</b> %{y}<br>' +
+                                           '<b>Long:</b> %{x}<br>' +
+                                           '<b>H:</b> %{z}<extra></extra>')],
             layout=layout)
 
         self.points = [[50.69419444444444, 10.916666666666668, 0], [50.68852777777777, 10.93011111111111, 0],
                        [50.68908333333333, 10.940277777777778, 0], [50.69275, 10.938694444444444, 0]]
 
         # Set the title and axis labels
-        self.fig.update_layout(scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Height'))
+        self.fig.update_layout(scene=dict(xaxis_title='Long', yaxis_title='Lat', zaxis_title='Height'))
         self.fig.update_scenes(aspectmode='manual', aspectratio=dict(x=1, y=2, z=0.2))
 
         # Generate the HTML string of the figure
@@ -85,9 +88,16 @@ class Map:
         # print(f"ms_s: {ms}")
         self.fig.data = new_data
         self.fig.add_trace(go.Scatter3d(x=x, y=y, z=z, name='Basestations', mode='markers',
-                                        marker=dict(symbol='square-open', size=5, color='red'), showlegend=False))
+                                        marker=dict(symbol='square-open', size=8, color='red'), showlegend=False,
+                                        hovertemplate='<b>Lat:</b> %{y}<br>' +
+                                                      '<b>Long:</b> %{x}<br>' +
+                                                      '<b>H:</b> %{z}<extra></extra>'))
         self.fig.add_trace(go.Scatter3d(x=[ms[0]], y=[ms[1]], z=[ms_s], name='Node', mode='markers',
-                                        marker=dict(symbol='diamond-open', size=5, color='yellow'), showlegend=False))
+                                        marker=dict(symbol='diamond-open', size=8, color='yellow'), showlegend=False,
+                                        hovertemplate=
+                                        '<b>Lat:</b> %{y}<br>' +
+                                        '<b>Long:</b> %{x}<br>' +
+                                        '<b>H:</b> %{z}<extra></extra>'))
         # Generate the HTML string of the figure
         html_string = pyo.plot(self.fig, include_plotlyjs='cdn', output_type='div')
 
@@ -123,32 +133,32 @@ class Map:
 
         except Exception as e:
             print(f"Error: {e}")
-        #print(f"show_result: {points}")
+        # print(f"show_result: {points}")
 
-        #print('\n#######')
-        #print(f'Points: {points}')
+        # print('\n#######')
+        # print(f'Points: {points}')
         points_conv = [[], [], []]
         # Converting coordinates in lat, lon
         for i, point in enumerate(points[0]):
-            #print(f'i: {i}')
+            # print(f'i: {i}')
             fi, la, h = k2w(points[0][i], points[1][i], points[2][i])
             points_conv[0].append(fi)
             points_conv[1].append(la)
-            #print(f'Conv: {fi}, {la}, {h}')
+            # print(f'Conv: {fi}, {la}, {h}')
 
-        #print(f'Points_conv: {points_conv}')
+        # print(f'Points_conv: {points_conv}')
         points_z = []
 
         for i, point in enumerate(points_conv[0]):
             mapped_x = round(self.map_value(points_conv[1][i], 10.875, 11, 0, self.imarray.shape[1]))
             mapped_y = round(self.map_value(points_conv[0][i], 50.625, 50.75, 0, self.imarray.shape[0]))
-            #print(f'Test: {self.imarray[mapped_y][mapped_x] + point}')
+            # print(f'Test: {self.imarray[mapped_y][mapped_x] + point}')
             points_z.append(self.imarray[mapped_y][mapped_x] + h)
 
-        #print(f'z: {points_z}')
+        # print(f'z: {points_z}')
 
         self.fig.add_trace(go.Scatter3d(x=points_conv[1], y=points_conv[0], z=points_z, name="Localisation", mode=mode,
-                                        marker=dict(symbol='cross', size=5, color=color), showlegend=False))
+                                        marker=dict(symbol='cross', size=8, color=color), showlegend=False))
         # Generate the HTML string of the figure
         html_string = pyo.plot(self.fig, include_plotlyjs='cdn', output_type='div')
 

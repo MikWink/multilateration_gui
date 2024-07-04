@@ -127,7 +127,7 @@ class Tdoah:
         LA = np.full(num_roots, np.nan)  # Longitude in degrees
         H = np.full(num_roots, np.nan)  # Height in meters
         solution_wgs = []
-
+        print("Calculating positions...")
         # Iterate over the roots and calculate positions
         for i in range(num_roots):
             if KK[i] > 0:
@@ -143,24 +143,25 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
+        print("Checking for real solutions...")
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    #print(f'No real solution for coords: {coords}')
+                    print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    #print(f'Real solution for coords: {coords}')
+                    print(f'Real solution for coords: {coords}')
                     solution = coords
                     solution_wgs = xxx[i], yyy[i], zzz[i]
 
-        #print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
+        print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
         solution_conv = solution[0], solution[1], solution[2]
-        #print("All done, returning values...")
+        print("All done, returning values...")
         return [[solution_wgs[0]], [solution_wgs[1]], [solution_wgs[2]]]
 
     def tdoaell(self, a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):
