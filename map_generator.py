@@ -54,11 +54,7 @@ class Map:
 
     def update(self, points):
         new_data = list(self.fig.data)
-        if len(new_data) > 2:
-            new_data.pop(1)
-            new_data.pop(1)
-        elif len(new_data) > 1:
-            new_data.pop(1)
+        new_data = new_data[:1]
 
         ms = points.pop(len(points) - 1)
         temp = ms[0]
@@ -128,8 +124,9 @@ class Map:
             if len(self.fig.data) > 3 and not eval_flag == True:
                 data = list(self.fig.data)
                 # print(f"Data: {data}")
-                data.pop(1)
+                #data.pop(1)
                 self.fig.data = data
+                #print(f'fig_data: {data}')
 
         except Exception as e:
             print(f"Error: {e}")

@@ -490,7 +490,7 @@ class MainWindow(QMainWindow):
                 if i1 < 4 and i2 < 3:
                     self.bs_labels[i1][i2].setText(str(self.conv_values[i1][i2]))
 
-            # print(f"Points: {points}")
+            print(f"Points: {points}")
             self.generated_map.update(points)
             web.reload()
         except Exception as e:
