@@ -4,7 +4,7 @@ class Tdoah:
     def __init__(self, bs, ms, ms_h, tdoa_std_1=0, tdoa_std_2=0, baro_std=0):
         self.bs = bs
         self.ms = ms
-        self.ms_h = ms_h
+        self.ms_h = ms_h + baro_std
         #print(f'BS: {self.bs}\nMS: {self.ms}\n')
         self.cl = np.longdouble(3e8)
         self.A = 6378137
@@ -52,7 +52,7 @@ class Tdoah:
         r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std_1
         r_0_2 = ((t_2 - t_0) * self.cl) + self.tdoa_std_2
 
-        print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
+        #print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
 
         # Translate coordinates
         x1 = locations_cartesian["P1"][0] - locations_cartesian["P0"][0]
@@ -100,8 +100,8 @@ class Tdoah:
         #print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
         print(f'ms_h: {self.ms_h}')
         try:
-            U = 6378137.0 + self.ms_h + self.baro_std
-            W = 6356752.31425 + self.ms_h + self.baro_std
+            U = 6378137.0 + self.ms_h
+            W = 6356752.31425 + self.ms_h
         except Exception as e:
             print(f'Error: {e}')
         #print(f'U: {U}\nW: {W}\n')
@@ -112,8 +112,8 @@ class Tdoah:
         except Exception as e:
             print(f'Error: {e}')
 
-        #print(f'KK: {KK}\n')
-        #print(f'zx: {zx}\n')
+        print(f'KK: {KK}\n')
+        print(f'zx: {zx}\n')
 
         # Initialize arrays for calculated values with NaNs
         num_roots = len(KK)
@@ -127,7 +127,7 @@ class Tdoah:
         LA = np.full(num_roots, np.nan)  # Longitude in degrees
         H = np.full(num_roots, np.nan)  # Height in meters
         solution_wgs = []
-        print("Calculating positions...")
+        #print("Calculating positions...")
         # Iterate over the roots and calculate positions
         for i in range(num_roots):
             if KK[i] > 0:
@@ -143,25 +143,25 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
-        print("Checking for real solutions...")
+        #print("Checking for real solutions...")
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    print(f'No real solution for coords: {coords}')
+                    #print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    print(f'Real solution for coords: {coords}')
+                    #print(f'Real solution for coords: {coords}')
                     solution = coords
                     solution_wgs = xxx[i], yyy[i], zzz[i]
 
-        print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
+        #print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
         solution_conv = solution[0], solution[1], solution[2]
-        print("All done, returning values...")
+        #print(f'Solution: {solution_wgs[0]}, {solution_wgs[1]}, {solution_wgs[2]}\n')
         return [[solution_wgs[0]], [solution_wgs[1]], [solution_wgs[2]]]
 
     def tdoaell(self, a, b, c, xc, yc, zc, a11, a21, a31, a12, a22, a32, a13, a23, a33, A, B, C, D):

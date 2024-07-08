@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
         tdoa_std_slider.setMinimum(0)
         tdoa_std_slider.setMaximum(10)
         tdoa_std_label = QLabel("0")
+        tdoa_std_unit = QLabel(" m")
         tdoa_std_slider.sliderReleased.connect(lambda: self.on_tdoa_std_changed(tdoa_std_slider, tdoa_std_label))
         tdoa_std_slider.valueChanged.connect(lambda: self.on_value_changed(tdoa_std_slider, tdoa_std_label))
 
@@ -78,9 +79,10 @@ class MainWindow(QMainWindow):
         baro_std_slider = QSlider(Qt.Horizontal)
         baro_std_slider.setMinimum(0)
         baro_std_slider.setMaximum(10)
-        baro_std_label = QLabel("0")
+        baro_std_label = QLabel("0,25")
+        baro_std_unit = QLabel(" x Std")
         baro_std_slider.sliderReleased.connect(lambda: self.on_baro_std_changed(baro_std_slider, baro_std_label))
-        baro_std_slider.valueChanged.connect(lambda: self.on_value_changed(baro_std_slider, baro_std_label))
+        baro_std_slider.valueChanged.connect(lambda: self.on_value_changed(baro_std_slider, baro_std_label, True))
 
         # Iterations Input
         iterations_label = QLabel("Iterations:")
@@ -90,14 +92,14 @@ class MainWindow(QMainWindow):
         # Start button
         start_button = QPushButton("Start")
         start_button.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text()), int(iterations_input.text())))
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
 
         # Eval output
         tdoa_deviation = QLabel("-")
         baro_deviation = QLabel("-")
         start_eval_btn = QPushButton("Start")
         start_eval_btn.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), int(baro_std_label.text()), int(iterations_input.text())))
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
 
         layout_right.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
         layout_right.addWidget(QLabel("TDOA"), 1, 3)
@@ -109,14 +111,16 @@ class MainWindow(QMainWindow):
 
         # Adding Widgets
         layout_left.addWidget(QLabel("TDOA Std:"), 0, 0)
-        layout_left.addWidget(iterations_label, 0, 2)
+        layout_left.addWidget(iterations_label, 0, 3)
         layout_left.addWidget(tdoa_std_slider, 1, 0)
         layout_left.addWidget(tdoa_std_label, 1, 1)
-        layout_left.addWidget(iterations_input, 1, 2)
+        layout_left.addWidget(tdoa_std_unit, 1, 2)
+        layout_left.addWidget(iterations_input, 1, 3)
         layout_left.addWidget(QLabel("Baro Std:"), 2, 0)
         layout_left.addWidget(baro_std_slider, 3, 0)
         layout_left.addWidget(baro_std_label, 3, 1)
-        layout_left.addWidget(start_button, 3, 2)
+        layout_left.addWidget(baro_std_unit, 3, 2)
+        layout_left.addWidget(start_button, 3, 3)
         widget_left.setLayout(layout_left)
 
         layout.addWidget(widget_left, 0, 0)
@@ -124,61 +128,69 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
-        # do the tdoah evaluation multiple times
-        target_list = [[] for _ in range(3)]
-
-
-        #print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
-        tdoa_vals = np.random.normal(0, tdoa_std, n*2)
-        baro_vals = np.random.normal(0, baro_std * 5, n)
-        for i in range(n):
-            self.conv_values = self.convert_input_field(baro_vals[i])
-            ms = self.conv_values.pop()
-            bs = self.conv_values
-            ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
-            print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
-            tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i+n], baro_vals[i])
-            target = tdoah_solver.solve()
-
-            #print(target_list)
-            target_list[0].append(target[0][0])
-            target_list[1].append(target[1][0])
-            target_list[2].append(target[2][0])
-
-        #print(target_list)
-        self.generated_map.show_result(target_list, 'blue', 'markers')
-
-        # do the 4bs evaluation multiple times
-        target_list = [[] for _ in range(3)]
-        # bringing the input in the right form for foy
-        foy_bs = [[] for _ in range(4)]
-        for e in bs:
-            foy_bs[0].append(e[0])
-            foy_bs[1].append(e[1])
-            foy_bs[2].append(e[2])
-        for e in ms:
-            foy_bs[3].append(e)
         try:
-            ms = [ms[0], ms[1], ms[2]]
-        except Exception as e:
-            print(f'Error: {e}')
-        for i in range(n):
-            print(f'Loop: {i}')
+            # do the tdoah evaluation multiple times
+            target_list = [[] for _ in range(3)]
+            print(f'Test: {baro_std}')
+
+
+            #print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
+            tdoa_vals = np.random.normal(0, tdoa_std, n*2)
+            baro_vals = np.random.normal(0, baro_std, n)
+            for i in range(n):
+                self.conv_values = self.convert_input_field(baro_vals[i])
+                ms = self.conv_values.pop()
+                bs = self.conv_values
+                ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
+                tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i+n], baro_vals[i])
+                target = tdoah_solver.solve()
+
+                #print(target_list)
+                target_list[0].append(target[0][0])
+                target_list[1].append(target[1][0])
+                target_list[2].append(target[2][0])
+                print(f'Target_z: {target[2][0]}')
+
+            #print(f'Target_list: {target_list}\n')
+            self.generated_map.show_result(target_list, 'blue', 'markers')
+
+            # do the 4bs evaluation multiple times
+            target_list = [[] for _ in range(3)]
+            # bringing the input in the right form for foy
+            foy_bs = [[] for _ in range(4)]
+            for e in bs:
+                foy_bs[0].append(e[0])
+                foy_bs[1].append(e[1])
+                foy_bs[2].append(e[2])
+            for e in ms:
+                foy_bs[3].append(e)
             try:
-                foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
-                foy_solver.solve()
+                ms = [ms[0], ms[1], ms[2]]
             except Exception as e:
                 print(f'Error: {e}')
-            target_list[0].append(foy_solver.guesses[0].pop())
-            target_list[1].append(foy_solver.guesses[1].pop())
-            target_list[2].append(foy_solver.guesses[2].pop())
+            for i in range(n):
+                #print(f'Loop: {i}')
+                try:
+                    foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
+                    foy_solver.solve()
+                except Exception as e:
+                    print(f'Error: {e}')
+                target_list[0].append(foy_solver.guesses[0].pop())
+                target_list[1].append(foy_solver.guesses[1].pop())
+                target_list[2].append(foy_solver.guesses[2].pop())
 
-        print(f'Foy Solver: {target_list}')
-        self.generated_map.show_result(target_list, 'green', 'markers')
-        web.reload()
+            #print(f'Foy Solver: {target_list}')
+            self.generated_map.show_result(target_list, 'green', 'markers')
+            web.reload()
+        except Exception as e:
+            print(f'Error: {e}')
 
-    def on_value_changed(self, slider, label):
-        label.setText(str(slider.value()))
+    def on_value_changed(self, slider, label, map=False):
+        if map == True:
+            slider_vals = ["0", "0.25", "0.5", "0.75", "1", "1.25", "1.5", "1.75", "2", "2.25", "2.5"]
+            label.setText(slider_vals[slider.value()])
+        else:
+            label.setText(str(slider.value()))
 
     def on_tdoa_std_changed(self, slider, label):
         pass
@@ -221,7 +233,7 @@ class MainWindow(QMainWindow):
                 if block_label == 'BS3:':
                     self.bs3_elements.append(input)
 
-        self.load_file('initial_setup.json')
+        self.load_file('realistic_ilmenau_setup.json')
 
         save_button = QPushButton("Save")
         save_button.clicked.connect(lambda: self.on_save_clicked())  # Connect the button to the slot
@@ -290,7 +302,7 @@ class MainWindow(QMainWindow):
                 values.append([float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
                                float(self.input_fields[i + 2].text())])
         for i, value in enumerate(values):
-            print(f'ms_h_real: {value[2]}')
+            #print(f'ms_h_real: {value[2]}')
             conv_values.append(w2k(value[0], value[1], value[2]))
         return conv_values
 
@@ -490,7 +502,7 @@ class MainWindow(QMainWindow):
                 if i1 < 4 and i2 < 3:
                     self.bs_labels[i1][i2].setText(str(self.conv_values[i1][i2]))
 
-            print(f"Points: {points}")
+            #print(f"Points: {points}")
             self.generated_map.update(points)
             web.reload()
         except Exception as e:
@@ -525,10 +537,10 @@ class MainWindow(QMainWindow):
                 # Update the map
                 web.reload()
             elif self.mode == "3BS":
-                print(f"Solver input: {bs, ms}")
+                #print(f"Solver input: {bs, ms}")
                 solver = Tdoah(bs, ms, ms_h)
                 target = solver.solve()
-                print(f'Final: {target}')
+                #print(f'Final: {target}')
                 self.generated_map.show_result(target)
                 self.print_solution(target)
                 web.reload()
@@ -553,9 +565,9 @@ class MainWindow(QMainWindow):
     def get_solver_input(self):
         bs = [[], [], []]
         ms = []
-        print(f"Input fields: {self.input_fields}")
+        #print(f"Input fields: {self.input_fields}")
         for i, input in enumerate(self.input_fields):
-            print(f'i: {i}, input: {input.text()}')
+            #print(f'i: {i}, input: {input.text()}')
             if i < len(self.input_fields) - 3:
                 if i % 3 == 0:
                     bs[0].append(float(input.text()))

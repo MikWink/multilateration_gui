@@ -141,6 +141,7 @@ class Map:
             fi, la, h = k2w(points[0][i], points[1][i], points[2][i])
             points_conv[0].append(fi)
             points_conv[1].append(la)
+            points_conv[2].append(h)
             # print(f'Conv: {fi}, {la}, {h}')
 
         # print(f'Points_conv: {points_conv}')
@@ -150,9 +151,9 @@ class Map:
             mapped_x = round(self.map_value(points_conv[1][i], 10.875, 11, 0, self.imarray.shape[1]))
             mapped_y = round(self.map_value(points_conv[0][i], 50.625, 50.75, 0, self.imarray.shape[0]))
             # print(f'Test: {self.imarray[mapped_y][mapped_x] + point}')
-            points_z.append(self.imarray[mapped_y][mapped_x] + h)
+            points_z.append(self.imarray[mapped_y][mapped_x] + points_conv[2][i])
 
-        # print(f'z: {points_z}')
+        print(f'z: {points_z}')
 
         self.fig.add_trace(go.Scatter3d(x=points_conv[1], y=points_conv[0], z=points_z, name="Localisation", mode=mode,
                                         marker=dict(symbol='cross', size=8, color=color), showlegend=False))
