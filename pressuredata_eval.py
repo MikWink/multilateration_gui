@@ -19,21 +19,17 @@ g = 9.81  # m/s^2 Gravitational acceleration
 def plot_graph(xpoints, ypoints, avg_x, avg_y):
     global tickvals, ticktext
     layout = go.Layout(
-        margin=dict(l=0, r=0, b=0, t=20)
+        margin=dict(l=0, r=0, b=0, t=30)
     )
     fig = go.Figure(data=[go.Scatter(x=xpoints, y=ypoints, mode='lines+markers', name='Height Error')], layout=layout)
 
     fig.add_trace(go.Scatter(x=avg_x, y=avg_y, mode='lines', name='Average Height Error', line=dict(color='red')))
 
-    """fig.update_layout(
-        xaxis=dict(
-            title='Time',
-            tickmode='array',
-            tickvals=tickvals,
-            ticktext=ticktext
-        ),
-        yaxis_title='Height Error in m'
-    )"""
+    fig.update_layout(
+        xaxis_title='Time in Unix Timestamp',
+        yaxis_title='Height Error in m',
+        title='Height Error over Time (6.6.24 00:00:00 - 13.6.24 23:59:59)',
+    )
 
     html_string = pyo.plot(fig, include_plotlyjs='cdn', output_type='div')
 
