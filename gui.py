@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
                 ms = self.conv_values.pop()
                 bs = self.conv_values
                 ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
+                print(f'Anforderungen:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
                 tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i+n], baro_vals[i])
                 target = tdoah_solver.solve()
 
@@ -233,7 +234,7 @@ class MainWindow(QMainWindow):
                 if block_label == 'BS3:':
                     self.bs3_elements.append(input)
 
-        self.load_file('realistic_ilmenau_setup.json')
+        self.load_file('bs_setups/realistic_ilmenau_setup.json')
 
         save_button = QPushButton("Save")
         save_button.clicked.connect(lambda: self.on_save_clicked())  # Connect the button to the slot
@@ -322,38 +323,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(comp_button, 4, 0)
         return layout
 
+    def read_json(self, file_path):
+        with open(file_path, 'r') as json_file:
+            data = json.load(json_file)
+            return data
+
     def on_compare_clicked(self, web):
-        print(f'\n\n####    Comparison: ####\nBS-Setup: {self.json_file}')
-        bs = [[], [], []]
-        ms = []
-        for i, input in enumerate(self.input_fields):
-            if i < len(self.input_fields) - 3:
-                if i % 3 == 0:
-                    bs[0].append(float(input.text()))
-                elif i % 3 == 1:
-                    bs[1].append(float(input.text()))
-                elif i % 3 == 2:
-                    bs[2].append(float(input.text()))
-            if i == len(self.input_fields) - 3:
-                ms = [float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
-                      float(self.input_fields[i + 2].text())]
-        bs.append(ms)
-        print(
-            f'\nBS0: {bs[0][0], bs[1][0], bs[2][0]}\nBS1: {bs[0][1], bs[1][1], bs[2][1]}\nBS2: {bs[0][2], bs[1][2], bs[2][2]}\nBS3: {bs[0][3], bs[1][3], bs[2][3]}\n')
-        print(f'Real target position: {ms}\n')
-        solver = Foy(bs, ms)
-        solver.solve()
-        solution = solver.guesses[0].pop(), solver.guesses[1].pop(), solver.guesses[2].pop()
-        error = [abs(solution[0] - ms[0]), abs(solution[1] - ms[1]), abs(solution[2] - ms[2])]
-        print(f'Estimated target position (TDOA: Foy):\n{solution}\n\nError: {error}\n')
-        solver = Tdoah(bs, ms)
-        solution = solver.solve()
-        # print(f"Solver Done\n{solution}")
+        # load json file
         try:
-            error = [abs(solution[0][0] - ms[0]), abs(solution[1][0] - ms[1]), abs(solution[2][0] - ms[2])]
+            ms_pos = self.read_json('finland_eval/ms_positions.json')
         except Exception as e:
-            print(f'Error: {e}')
-        print(f'Estimated target position (TDOAH):\n{solution}\n\nError: {error}')
+            print(f"Error: {e}")
+
+        print(ms_pos)
 
     def on_mode_switch_clicked(self, button):
         try:
@@ -503,10 +485,15 @@ class MainWindow(QMainWindow):
                     self.bs_labels[i1][i2].setText(str(self.conv_values[i1][i2]))
 
             #print(f"Points: {points}")
-            self.generated_map.update(points)
+            if float(self.input_fields[0].text()) > 65.0:
+                print(float(self.input_fields[0].text()))
+                self.generated_map.update(points, True)
+                print("gogogo")
+            else:
+                self.generated_map.update(points)
             web.reload()
         except Exception as e:
-            print(f"Errror: {e}")
+            print(f"Error: {e}")
 
     def on_calc_clicked(self, web):
         try:

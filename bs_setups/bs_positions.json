@@ -1,32 +1,32 @@
 {
-  "0x70b3d56770ffff55": {
+  "0x70b3d56770ffff55": { # Referenzstation
     "name": "smartie-3",
     "latitude": 68.000587,
     "longitude": 24.156390,
-    "altitude": 567
+    "altitude": 566
   },
   "0x70b3d56770ffff51": {
     "name": "smartie-relais",
     "latitude": 67.987243,
     "longitude": 24.243120,
-    "altitude": 372
+    "altitude": 371
   },
   "0x70b3d56770ffff53": {
     "name": "smartie-1",
     "latitude": 67.988134,
     "longitude": 24.114210,
-    "altitude": 494
+    "altitude": 493
   },
   "0x70b3d56770ffff50": {
     "name": "smartie-base",
     "latitude": 67.973268,
     "longitude": 24.115814,
-    "altitude": 570
+    "altitude": 565
   },
   "0x70b3d56770ffff52": {
     "name": "smartie-0",
     "latitude": 67.973339,
     "longitude": 24.115618,
-    "altitude": 569
+    "altitude": 568
   }
 }

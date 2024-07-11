@@ -14,7 +14,7 @@ class Tdoah:
         self.tdoa_std_2 = tdoa_std_2
         self.baro_std = baro_std
 
-    def solve(self):
+    def solve(self, tdoa_0=-1, tdoa_1=-1):
         P0 = (self.bs[0])
         P1 = (self.bs[1])
         P2 = (self.bs[2])
@@ -49,8 +49,12 @@ class Tdoah:
 
         #print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
 
-        r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std_1
-        r_0_2 = ((t_2 - t_0) * self.cl) + self.tdoa_std_2
+        if tdoa_0 == -1 and tdoa_1 == -1:
+            r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std_1
+            r_0_2 = ((t_2 - t_0) * self.cl) + self.tdoa_std_2
+        else:
+            r_0_1 = tdoa_0
+            r_0_2 = tdoa_1
 
         #print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
 
@@ -98,7 +102,7 @@ class Tdoah:
         D = (-B * b - r_0_2) / c
 
         #print(f'A: {A}\nB: {B}\nC: {C}\nD: {D}\n')
-        print(f'ms_h: {self.ms_h}')
+        #print(f'ms_h: {self.ms_h}')
         try:
             U = 6378137.0 + self.ms_h
             W = 6356752.31425 + self.ms_h
@@ -112,8 +116,8 @@ class Tdoah:
         except Exception as e:
             print(f'Error: {e}')
 
-        print(f'KK: {KK}\n')
-        print(f'zx: {zx}\n')
+        #print(f'KK: {KK}\n')
+        #print(f'zx: {zx}\n')
 
         # Initialize arrays for calculated values with NaNs
         num_roots = len(KK)
@@ -143,24 +147,24 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
-        #print("Checking for real solutions...")
+        print("Checking for real solutions...")
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    #print(f'No real solution for coords: {coords}')
+                    print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    #print(f'Real solution for coords: {coords}')
+                    print(f'Real solution for coords: {coords}')
                     solution = coords
                     solution_wgs = xxx[i], yyy[i], zzz[i]
 
         #print(f'FI: {self.deg2dms(solution[0])}\nLA: {self.deg2dms(solution[1])}\nH: {solution[2]}\n')
-        solution_conv = solution[0], solution[1], solution[2]
+        #solution_conv = solution[0], solution[1], solution[2]
         #print(f'Solution: {solution_wgs[0]}, {solution_wgs[1]}, {solution_wgs[2]}\n')
         return [[solution_wgs[0]], [solution_wgs[1]], [solution_wgs[2]]]
 
@@ -213,7 +217,7 @@ class Tdoah:
         M4 = -1.1473908183017031e+65
         M5 = 5.4796754770303925e+78
 
-        # print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
+        #print(f"Type of: {type(M1)}\nM1: {M1}\nM2: {M2}\nM3: {M3}\nM4: {M4}\nM5: {M5}\n")
 
         # Version 2
         M1 = float(G ** 2 - D3 * I ** 2)  # Force float64 representation
@@ -226,7 +230,7 @@ class Tdoah:
 
         K = self.pol4(M1, M2, M3, M4, M5)
 
-        # print(f'E: {type(E)}\n F: {type(F)}\nK: {type(K)}\nG: {type(G)}\n')
+        #print(f'E: {type(E)}\n F: {type(F)}\nK: {type(K)}\nG: {type(G)}\n')
 
         zz = np.array([(E + F * k + G * k ** 2) / (H + I * k) for k in K])
 
@@ -246,7 +250,7 @@ class Tdoah:
         aa1 = a3 * a1 - 4 * a0
         aa0 = 4 * a2 * a0 - a1**2 - a3**2 * a0
 
-        #print(f'aa0: {aa0}\naa1: {aa1}\naa2: {aa2}\n')
+        print(f'aa0: {aa0}\naa1: {aa1}\naa2: {aa2}\n')
 
         # Find a real root of the cubic polynomial
         discriminant = (-aa2**2/9 + aa1/3)**3 + (-aa2**3/27 + (aa1*aa2)/6 + aa0/2)**2

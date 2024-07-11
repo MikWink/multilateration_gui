@@ -5,8 +5,8 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.offline as pyo
 
-smarties_base = 570
-smarties_relais = 372
+smarties_base = 565
+smarties_relais = 371
 smarties_0 = 569
 smarties_1 = 494
 smarties_3 = 372
@@ -25,7 +25,7 @@ def plot_graph(xpoints, ypoints, avg_x, avg_y):
 
     fig.add_trace(go.Scatter(x=avg_x, y=avg_y, mode='lines', name='Average Height Error', line=dict(color='red')))
 
-    fig.update_layout(
+    """fig.update_layout(
         xaxis=dict(
             title='Time',
             tickmode='array',
@@ -33,7 +33,7 @@ def plot_graph(xpoints, ypoints, avg_x, avg_y):
             ticktext=ticktext
         ),
         yaxis_title='Height Error in m'
-    )
+    )"""
 
     html_string = pyo.plot(fig, include_plotlyjs='cdn', output_type='div')
 
@@ -102,7 +102,7 @@ for i in range(len(xpoints_base)):
     delta_h.append(np.abs((R * T) / g * np.log(float(ypoints_base[i]) / float(ypoints_comp[i]))))
 
 for i, e in enumerate(delta_h):
-    delta_h[i] = e - 198
+    delta_h[i] = e - (smarties_base - smarties_relais)
 
 avg = sum(delta_h) / len(delta_h)
 avg_x = [xpoints_base[0], xpoints_base[len(xpoints_base) - 1]]
@@ -111,4 +111,4 @@ avg_y = [avg, avg]
 x_datetime = [datetime.fromtimestamp(x) for x in xpoints_base]
 print(x_datetime)
 
-plot_graph(x_datetime, delta_h, avg_x, avg_y)
+plot_graph(xpoints_base, delta_h, avg_x, avg_y)

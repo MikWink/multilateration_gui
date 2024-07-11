@@ -52,9 +52,12 @@ class Map:
         with open('terrain_map.html', 'w') as file:
             file.write(html_string)
 
-    def update(self, points):
+    def update(self, points, empty_map=False):
         new_data = list(self.fig.data)
-        new_data = new_data[:1]
+        if not empty_map:
+            new_data = new_data[:1]
+        else:
+            new_data = new_data[:0]
 
         ms = points.pop(len(points) - 1)
         temp = ms[0]
@@ -71,19 +74,27 @@ class Map:
             x.append(x_tmp)
             y.append(y_tmp)
             # print(f'x_tmp: {x_tmp}, {type(x_tmp)}, y_tmp: {y_tmp}')
-            mapped_x = round(self.map_value(float(x_tmp), 10.875, 11.0, 0, self.imarray.shape[1] - 1))
-            mapped_y = round(self.map_value(float(y_tmp), 50.625, 50.75, 0, self.imarray.shape[0] - 1))
-            # print(f"mapped_x: {mapped_x}, mapped_y: {mapped_y}")
-            z.append(self.imarray[mapped_y][mapped_x] + float(point[2]))
+            if not empty_map:
+                mapped_x = round(self.map_value(float(x_tmp), 10.875, 11.0, 0, self.imarray.shape[1] - 1))
+                mapped_y = round(self.map_value(float(y_tmp), 50.625, 50.75, 0, self.imarray.shape[0] - 1))
+                # print(f"mapped_x: {mapped_x}, mapped_y: {mapped_y}")
+                z.append(self.imarray[mapped_y][mapped_x] + float(point[2]))
+            else:
+                z.append(float(point[2]))
+                print("1")
 
-        mapped_ms_x = round(self.map_value(float(ms[0]), 10.875, 11.0, 0, self.imarray.shape[1] - 1))
-        mapped_ms_y = round(self.map_value(float(ms[1]), 50.625, 50.75, 0, self.imarray.shape[0] - 1))
-        # print(f'ms[0]: {ms[0]}, ms[1]: {ms[1]}')
-        # print(f'mapped_ms_x: {mapped_ms_x}, mapped_ms_y: {mapped_ms_y}')
-        ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + int(ms[2])
+        if not empty_map:
+            mapped_ms_x = round(self.map_value(float(ms[0]), 10.875, 11.0, 0, self.imarray.shape[1] - 1))
+            mapped_ms_y = round(self.map_value(float(ms[1]), 50.625, 50.75, 0, self.imarray.shape[0] - 1))
+            # print(f'ms[0]: {ms[0]}, ms[1]: {ms[1]}')
+            # print(f'mapped_ms_x: {mapped_ms_x}, mapped_ms_y: {mapped_ms_y}')
+            ms_s = self.imarray[mapped_ms_y][mapped_ms_x] + int(ms[2])
+        else:
+            ms_s = float(ms[2])
+            print("2")
         # print(f"ms_s: {ms}")
         self.fig.data = new_data
-        self.fig.add_trace(go.Scatter3d(x=x, y=y, z=z, name='Basestations', mode='markers',
+        self.fig.add_trace(go.Scatter3d(x=sorted(x), y=y, z=z, name='Basestations', mode='markers',
                                         marker=dict(symbol='square-open', size=8, color='red'), showlegend=False,
                                         hovertemplate='<b>Lat:</b> %{y}<br>' +
                                                       '<b>Long:</b> %{x}<br>' +
