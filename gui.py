@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMa
     QLineEdit, QPushButton, QComboBox, QFileDialog, QDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+import plotly.graph_objects as go
+
 from map_generator import Map
 from map_generator_v2 import Map as Map2
 import json
@@ -130,23 +132,7 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
-        if self.eval_window is None:
-            print(f'input_fields: {self.input_fields}')
-            points = []
-            i = 0
-            try:
-                for k, field in enumerate(self.input_fields):
-                    if i % 3 == 0 and i < len(self.input_fields) - 3:
-                        points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(), self.input_fields[k + 2].text()])
 
-                    i += 1
-            except Exception as e:
-                print(f'Error: {e}')
-            print(f'POINTS: {points}')
-            self.eval_window = EvalWindow(points)
-            self.eval_window.show()
-            self.eval_window.raise_()
-            self.eval_window.activateWindow()
         try:
             # do the tdoah evaluation multiple times
             target_list = [[] for _ in range(3)]
@@ -173,6 +159,7 @@ class MainWindow(QMainWindow):
 
             #print(f'Target_list: {target_list}\n')
             self.generated_map.show_result(target_list, 'blue', 'markers')
+            tdoah_targets = target_list
 
             # do the 4bs evaluation multiple times
             target_list = [[] for _ in range(3)]
@@ -201,7 +188,30 @@ class MainWindow(QMainWindow):
 
             #print(f'Foy Solver: {target_list}')
             self.generated_map.show_result(target_list, 'green', 'markers')
+            foy_targets = target_list
             web.reload()
+
+
+            # Load Eval window
+            if self.eval_window is None:
+                print(f'input_fields: {self.input_fields}')
+                points = []
+                i = 0
+                try:
+                    for k, field in enumerate(self.input_fields):
+                        if i % 3 == 0 and i < len(self.input_fields) - 2:
+                            points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(),
+                                           self.input_fields[k + 2].text()])
+
+                        i += 1
+                except Exception as e:
+                    print(f'Error: {e}')
+                print(f'POINTS: {points}')
+                self.eval_window = EvalWindow(points, foy_targets, tdoah_targets)
+                self.eval_window.show()
+                self.eval_window.raise_()
+                self.eval_window.activateWindow()
+
         except Exception as e:
             print(f'Error: {e}')
 
@@ -604,8 +614,15 @@ class MainWindow(QMainWindow):
 
 
 class EvalWindow(QDialog):
-    def __init__(self, input_fields):
+    def __init__(self, input_fields, foy_targets, tdoah_targets):
         self.input_fields = input_fields
+        self.foy_targets = foy_targets
+        self.tdoah_targets = tdoah_targets
+        self.ms = None
+
+        print(f'foy_targets: {foy_targets}\ntdoah_targets: {tdoah_targets}')
+
+        self.map = None
         try:
             super().__init__(None)
             self.web_view = None
@@ -619,9 +636,19 @@ class EvalWindow(QDialog):
 
     def init_map(self):
         print(f'$input field: {self.input_fields}')
-        map2 = Map2(self.input_fields)
-        map2.init_earth()
-        map2.show()
+        self.map = Map2(self.input_fields)
+        self.map.init_earth()
+        self.ms = self.map.get_ms()
+        self.ms = w2k(float(self.ms[0]), float(self.ms[1]), float(self.ms[2]))
+        self.foy_targets[0] -= self.ms[0]
+        self.foy_targets[1] -= self.ms[1]
+        self.foy_targets[2] -= self.ms[2]
+        self.tdoah_targets[0] -= self.ms[0]
+        self.tdoah_targets[1] -= self.ms[1]
+        self.tdoah_targets[2] -= self.ms[2]
+        self.map.add_trace(go.Scatter3d(x=self.foy_targets[1], y=self.foy_targets[0], z=self.foy_targets[2], name="Foy", mode='markers', marker=dict(color='green')), 'foy')
+        self.map.add_trace(go.Scatter3d(x=self.tdoah_targets[1], y=self.tdoah_targets[0], z=self.tdoah_targets[2], name="TDOAH", mode='markers', marker=dict(color='blue')), 'tdoah')
+        self.map.show()
 
 
     def init_ui(self):
@@ -673,7 +700,19 @@ class EvalWindow(QDialog):
             self.web_view.setHtml(html)
 
     def on_earth_clicked(self):
-        pass
+        self.map.toggle_earth()
+        self.map.show()
+        self.on_update_clicked()
+
+    def on_bs_clicked(self):
+        self.map.toggle_stations('bs')
+        self.map.show()
+        self.on_update_clicked()
+
+    def on_ms_clicked(self):
+        self.map.toggle_stations('ms')
+        self.map.show()
+        self.on_update_clicked()
 
 
 

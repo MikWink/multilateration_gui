@@ -14,6 +14,8 @@ class Map:
         self.ms_point = points[-1]
         self.ms_trace = None
         self.bs_trace = None
+        print(f'Points: {self.points}')
+        print(f'MS: {self.ms_point}')
 
         self.points = self.convert_translate_points()  # Translate the coordinates, so the mobile station is located at the origin
         self.fig = self.create_plot()  # Create the plot
@@ -21,8 +23,8 @@ class Map:
 
     def create_plot(self):
         fig = go.Figure()
-        print(self.points)
-        print(self.points[:-1])
+        #print(self.points)
+        #print(self.points[:-1])
         self.ms_trace = go.Scatter3d(x=[self.points[-1, 0]], y=[self.points[-1, 1]], z=[self.points[-1, 2]],
                                      mode='markers',
                                      name='Mobile Station',
@@ -46,11 +48,16 @@ class Map:
 
         return fig
 
-    def add_trace(self, trace):
+    def add_trace(self, trace, uid=None):
         self.fig.add_trace(trace)
+        if uid is not None:
+            self.fig.data[-1].uid = uid
 
     def get_points(self):
         return self.points
+
+    def get_ms(self):
+        return self.ms_point
 
     def show(self):
         # Generate the HTML string of the figure
@@ -62,7 +69,7 @@ class Map:
         conv_values = []
         # convert the points to the correct coordinate system
         for i, point in enumerate(self.points):
-            print(float(point[0]), float(point[1]), float(point[2]))
+            #print(float(point[0]), float(point[1]), float(point[2]))
             conv_values.append(w2k(float(point[0]), float(point[1]), float(point[2])))
 
         # translate the points so the mobile station is located at the origin
@@ -82,10 +89,10 @@ class Map:
         """
         Plots an interpolated surface based on given points in ECEF coordinates.
         """
-        print(f'points: {points}')
+        #print(f'points: {points}')
         # Get coordinates at sea level and convert to ECEF
         points_ecef = np.array([w2k(float(p[0]), float(p[1]), 0.0) for p in points])
-        print(f'Converted and lowered points: {points_ecef}')
+        #print(f'Converted and lowered points: {points_ecef}')
 
         points_conv = np.array([w2k(float(p[0]), float(p[1]), float(p[2])) for p in points])
         points_ecef = np.array([p - points_conv[0] for p in points_ecef])
@@ -140,11 +147,11 @@ class Map:
         """
         alt = wgs_center[-1]
         wgs_center = wgs_center[:2]
-        print(wgs_center)
+        #print(wgs_center)
 
         lat, lon = map(float, wgs_center)
 
-        print(lat, lon, alt)
+        #print(lat, lon, alt)
 
         # Azimuthal Equidistant projection centered at the point
         crs_aeqd = CRS.from_proj4(f"+proj=aeqd +lat_0={lat} +lon_0={lon}")
@@ -172,7 +179,6 @@ class Map:
 
     def init_earth(self):
         self.earth_on = True
-        print()
         earth_area = self.wgs84_square_points(self.ms_point)
         earth_trace = self.plot_ellipsoid(earth_area)
         self.add_trace(earth_trace)
@@ -187,12 +193,11 @@ class Map:
             self.init_earth()
 
     def toggle_stations(self, station):
-        trace = False
+        trace_there = False
         for trace in self.fig.data:
             if trace.uid == station:
-                trace = True
-
-        if trace:
+                trace_there = True
+        if trace_there:
             self.fig.data = [trace for trace in self.fig.data if trace.uid != station]
         else:
             if station == 'ms':
@@ -201,10 +206,3 @@ class Map:
             else:
                 self.add_trace(self.bs_trace)
                 self.fig.data[-1].uid = station
-
-
-points = [['50.673881', '10.953427', '0'], ['50.674918', '10.906670', '0'], ['50.704759', '10.919444', '0'],
-          ['50.682106', '10.933819', '300'], ['50.686887', '10.936072', '150']]
-map2 = Map(points)
-map2.init_earth()
-map2.show()
