@@ -10,4 +10,24 @@ bei dem der Ursprung im Erdmittelpunkt liegt. Die x-Achse zeigt in Richtung des 
 z-Achse zeigt in Richtung des Nordpols und die y-Achse zeigt in Richtung des 90°-Längengrades. Die Einheit der
 Koordinaten ist Meter.
 
+## Generierung der Karte:
+
+Die Karte wird in der `map_generator.py` Klasse generiert. Hierbei wird die Karte in einem 3D-Diagramm dargestellt, wobei
+die mobile Station den Koordinatenursprung darstellt. 
+
+### Methoden:
+`init(points)`: Initialisiert die Klasse mit den übergebenen Punkten. Die Punkte sind eine Liste von Koordinaten, die in der Karte
+dargestellt werden sollen.
+
+`create_plot()`: Erstellt das 3D-Diagramm und fügt Mobil- und Basisstationen hinzu.
+
+`add_trace(trace)`: Fügt dem Diagramm einen Trace hinzu.
+
+`show()`: Schreibt das Diagramm als HTML-Datei.
+
+`init_earth()`: Initialisiert Erdausschnitt für das Diagramm in abhängigkeit der MS Position.
+
+`toggle_earth()`: Schaltet Erdausschnitt ein/aus.
+
+`toggle_stations(station)`: Schaltet Basisstationen oder die Mobilstation ein/aus. Übergeben wird 'ms' oder 'bs'.
 
