@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
-    QLineEdit, QPushButton, QComboBox, QFileDialog
+    QLineEdit, QPushButton, QComboBox, QFileDialog, QDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
@@ -16,6 +16,7 @@ from solver.tdoah_class import Tdoah
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.eval_window = None
         self.web = QWebEngineView()
         self.master_layout = QGridLayout()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
@@ -128,6 +129,11 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
+        if self.eval_window is None:
+            self.eval_window = EvalWindow(self)
+            self.eval_window.show()
+            self.eval_window.raise_()
+            self.eval_window.activateWindow()
         try:
             # do the tdoah evaluation multiple times
             target_list = [[] for _ in range(3)]
@@ -584,16 +590,26 @@ class MainWindow(QMainWindow):
             print(f"Error: {e}")
 
 
-class MainWindow2(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.showMaximized()
+class EvalWindow(QDialog):
+    def __init__(self, parent=None):
+        try:
+            super().__init__(parent)
+            self.setWindowTitle("Evaluation")
+            self.resize(800, 600)
 
-        self.view = QWebEngineView(self)
-        self.view.load(QUrl.fromLocalFile("/terrain_map.html"))
+            self.web_view = QWebEngineView(self)
+            self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        # self.setCentralWidget(self.view)
-        self.create_base_station_cards()
+            # Load HTML file directly into the web view
+            with open('coordinate_map.html', 'r') as f:
+                html = f.read()
+                self.web_view.setHtml(html)
+
+            layout = QVBoxLayout()
+            layout.addWidget(self.web_view)
+            self.setLayout(layout)  # Set layout to the QDialog itself
+        except Exception as e:
+            print(f"Error: {e}")
 
     def create_base_station_cards(self):
         # Example base station data
