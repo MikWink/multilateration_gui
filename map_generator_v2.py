@@ -36,6 +36,14 @@ class Map:
         fig.add_trace(self.bs_trace)
         fig.data[-1].uid = 'bs'
 
+        fig.update_layout(
+            margin=dict(l=0, r=0, b=0, t=40),
+            scene=dict(xaxis_title='X in m',
+                       yaxis_title='Y in m',
+                       zaxis_title='Z in m'),
+            title='Localization Error Map'
+        )
+
         return fig
 
     def add_trace(self, trace):
@@ -100,7 +108,11 @@ class Map:
             lighting=dict(ambient=0.8, diffuse=0.8, specular=0.2, roughness=0.1)
         )
 
-        fig = go.Figure(data=[earth_trace])
+        layout = go.Layout(
+            margin=dict(l=0, r=0, b=0, t=20)
+        )
+
+        fig = go.Figure(data=[earth_trace], layout=layout)
 
         # Update layout (adjust labels and zoom as needed)
         fig.update_layout(

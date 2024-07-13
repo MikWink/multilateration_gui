@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMa
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from map_generator import Map
+from map_generator_v2 import Map as Map2
 import json
 import sys
 import os
@@ -130,7 +131,19 @@ class MainWindow(QMainWindow):
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
         if self.eval_window is None:
-            self.eval_window = EvalWindow(self)
+            print(f'input_fields: {self.input_fields}')
+            points = []
+            i = 0
+            try:
+                for k, field in enumerate(self.input_fields):
+                    if i % 3 == 0 and i < len(self.input_fields) - 3:
+                        points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(), self.input_fields[k + 2].text()])
+
+                    i += 1
+            except Exception as e:
+                print(f'Error: {e}')
+            print(f'POINTS: {points}')
+            self.eval_window = EvalWindow(points)
             self.eval_window.show()
             self.eval_window.raise_()
             self.eval_window.activateWindow()
@@ -591,43 +604,77 @@ class MainWindow(QMainWindow):
 
 
 class EvalWindow(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, input_fields):
+        self.input_fields = input_fields
         try:
-            super().__init__(parent)
-            self.setWindowTitle("Evaluation")
-            self.resize(800, 600)
+            super().__init__(None)
+            self.web_view = None
+            self.input_fields = self.input_fields
 
-            self.web_view = QWebEngineView(self)
-            self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-            # Load HTML file directly into the web view
-            with open('coordinate_map.html', 'r') as f:
-                html = f.read()
-                self.web_view.setHtml(html)
-
-            layout = QVBoxLayout()
-            layout.addWidget(self.web_view)
-            self.setLayout(layout)  # Set layout to the QDialog itself
+            self.init_map()
+            self.init_ui()
         except Exception as e:
-            print(f"Error: {e}")
+            print(f'Error: {e}')
 
-    def create_base_station_cards(self):
-        # Example base station data
-        base_stations = [
-            ("Base Station 1", 100, 200, 50, 30),
-            ("Base Station 2", 350, 150, 80, 45),
-            # ... more base stations
-        ]
+    def init_map(self):
+        print(f'$input field: {self.input_fields}')
+        map2 = Map2(self.input_fields)
+        map2.init_earth()
+        map2.show()
 
-        for name, x, y, z, height in base_stations:
-            card = BaseStationCard(name, x, y, z, height)
 
-            # Calculate card position relative to the chart/web view
-            card_x = self.view.x() + x  # Adjust as needed
-            card_y = self.view.y() + y
+    def init_ui(self):
+        self.setWindowTitle("Evaluation")
+        self.resize(800, 600)
 
-            # card.setGeometry(card_x, card_y, card.sizeHint().width(), card.sizeHint().height())
-            card.show()
+        self.web_view = QWebEngineView(self)
+        self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        interface = QWidget()
+        interface.setLayout(self.init_interface())
+
+
+        # Load HTML file directly into the web view
+        with open('coordinate_map.html', 'r') as f:
+            html = f.read()
+            self.web_view.setHtml(html)
+
+        layout = QVBoxLayout()
+        layout.addWidget(interface)
+        layout.addWidget(self.web_view)
+
+        self.setLayout(layout)  # Set layout to the QDialog itself
+
+    def init_interface(self):
+        layout = QGridLayout()
+        update_button = QPushButton("Update")
+        update_button.clicked.connect(lambda: self.on_update_clicked())
+        layout.addWidget(update_button, 0, 0)
+
+        earth_button = QPushButton("Earth on/off")
+        earth_button.clicked.connect(lambda: self.on_earth_clicked())
+        layout.addWidget(earth_button, 0, 1)
+
+        bs_button = QPushButton("BS on/off")
+        bs_button.clicked.connect(lambda: self.on_bs_clicked())
+        layout.addWidget(bs_button, 0, 2)
+
+        ms_button = QPushButton("MS on/off")
+        ms_button.clicked.connect(lambda: self.on_ms_clicked())
+        layout.addWidget(ms_button, 0, 3)
+
+        return layout
+
+    def on_update_clicked(self):
+        # Load HTML file directly into the web view
+        with open('coordinate_map.html', 'r') as f:
+            html = f.read()
+            self.web_view.setHtml(html)
+
+    def on_earth_clicked(self):
+        pass
+
 
 
 class BaseStationCard(QWidget):
