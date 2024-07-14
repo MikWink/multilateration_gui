@@ -1,11 +1,9 @@
 import numpy as np
-from PIL import Image
 import plotly.graph_objects as go
 import plotly.offline as pyo
-from solver.tdoah import w2k, k2w
+from solver.tdoah import w2k
 from scipy.interpolate import griddata
 from pyproj import CRS, Transformer
-import time
 
 
 class EvalPlot:

@@ -31,3 +31,89 @@ dargestellt werden sollen.
 
 `toggle_stations(station)`: Schaltet Basisstationen oder die Mobilstation ein/aus. Übergeben wird 'ms' oder 'bs'.
 
+## Generierung des Eval Plots:
+
+Für die Evaluation der Algorithmen eignet sich ein Diagramm in Metern besser als eines in Längen- und Breitengraden. Die 
+Klasse EvalPlot generiert ein Diagramm in Metern, wobei die mobile Station den Koordinatenursprung darstellt. Dadurch
+kann der Fehler in Metern abgelesen werden.
+
+## EvalPlot: Visualisierung von Lokalisierungsfehlern
+
+Die Klasse `EvalPlot` ermöglicht die interaktive Visualisierung von Lokalisierungsfehlern in einem 3D-Plot, wobei die Mobile Station (MS) im Koordinatenursprung liegt. Dadurch kann der Fehler in Metern direkt abgelesen werden.
+
+### Initialisierung (`__init__`)
+
+```python
+EvalPlot(points)
+```
+
+*   **`points`:** Eine Liste von Listen, wobei jede innere Liste die WGS84-Koordinaten (Breitengrad, Längengrad, Höhe) eines Punktes darstellt. Der erste Punkt in dieser Liste repräsentiert den Mittelpunkt der darzustellenden Erdoberfläche. Die restlichen Punkte sind die Basisstationen und der letzte Punkt in der Liste ist die Mobile Station.
+*   **Typ:** `list`
+
+**Beispiel:**
+```python
+points = [
+['50.686887', '10.936072', '150'],  # Mittelpunkt der Erdoberfläche
+['50.673881', '10.953427', '500'],  # Basisstation 1
+['50.674918', '10.906670', '0'],    # Basisstation 2
+['50.704759', '10.919444', '0'],    # Basisstation 3
+['50.682106', '10.933819', '300']   # Mobile Station
+]
+map = EvalPlot(points)
+```
+
+### Methoden
+
+#### `add_trace(trace, uid=None)`
+
+Fügt dem Plot eine neue Datenreihe (Trace) hinzu.
+
+*   **`trace`:** Ein Plotly-Trace-Objekt, das die zu visualisierenden Daten enthält (z. B. `go.Scatter3d`, `go.Surface`).
+*   **Typ:** `plotly.graph_objects`
+*   **`uid`:** (Optional) Eine eindeutige ID (String), die dem Trace zugewiesen wird, um es später leichter identifizieren zu können (z.B. zum Ein-/Ausblenden).
+
+#### `get_points()`
+
+Gibt die Liste der Punkte (ECEF-Koordinaten) zurück, die in der Visualisierung verwendet werden.
+
+*   **Rückgabewert:** `numpy.ndarray`
+
+#### `get_ms()`
+
+Gibt die WGS84-Koordinaten der Mobile Station zurück.
+
+*   **Rückgabewert:** `list`
+
+#### `show()`
+
+Generiert die HTML-Darstellung des Plots und speichert sie in der Datei `coordinate_map.html`.
+
+#### `init_earth()`
+
+Erzeugt eine 3D-Oberfläche, die einen Teil der Erdoberfläche um die Mobile Station herum repräsentiert. Die Fläche ist standardmäßig nicht sichtbar und muss durch die Methode `toggle_earth` aktiviert werden.
+
+#### `toggle_earth()`
+
+Schaltet die Sichtbarkeit der Erdoberfläche im Plot um.
+
+#### `toggle_stations(station)`
+
+Schaltet die Sichtbarkeit der Basisstationen oder der Mobile Station um.
+
+*   **`station`:**  Entweder "bs" (für Basisstationen) oder "ms" (für Mobile Station).
+*   **Typ:** `str`
+
+**Wichtiger Hinweis:**
+
+Die Methoden `w2k` (WGS84 to ECEF), `calculate_ellipsoid_height` und `wgs84_square_points` sind interne Hilfsfunktionen und nicht für den direkten Gebrauch von außen gedacht.
+
+
+
+Mit dieser Klasse und ihren Methoden können Sie Lokalisierungsfehler effizient visualisieren und analysieren.
+
+**Beispiel:**
+```python
+map.init_earth()  # Erdoberfläche hinzufügen (optional)
+map.show()       # Plot anzeigen
+```
+
