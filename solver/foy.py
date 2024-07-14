@@ -2,7 +2,6 @@ import logging
 
 import numpy as np
 import math
-from transformer import CoordinateTransformer
 
 class Foy:
     def __init__(self, bs_list, ms, tdoa_std=0, baro_std=0):
@@ -116,12 +115,6 @@ class Foy:
 
         #print(f"R_i: {self.R_i_real}")
         #print(f"R_i_0: {self.R_i_0}\n")
-
-    def convert_coordinates(self):
-        for bs in self.bs_list:
-            utm_list = list(CoordinateTransformer.long_to_utm(bs))
-            utm_list.append(bs[2])
-            self.bs_list.append(utm_list)
 
 
 

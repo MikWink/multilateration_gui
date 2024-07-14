@@ -34,7 +34,7 @@ def plot_graph(xpoints, ypoints, avg_x, avg_y):
     html_string = pyo.plot(fig, include_plotlyjs='cdn', output_type='div')
 
     # Update the map window with the new plot
-    with open('height_error.html', 'w') as file:
+    with open('../height_error.html', 'w') as file:
         file.write(html_string)
 
 # Assuming your start and end datetimes

@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
-    QLineEdit, QPushButton, QComboBox, QFileDialog, QDialog
+from PyQt5.QtWidgets import QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
+    QLineEdit, QPushButton, QFileDialog, QDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
@@ -7,11 +7,9 @@ import plotly.graph_objects as go
 from map_generator import Map
 from map_generator_v2 import Map as Map2
 import json
-import sys
 import os
 from solver.foy import Foy
 import pvlib
-from test_3_eq import PressureSolver
 from solver.tdoah import *
 from solver.tdoah_class import Tdoah
 
