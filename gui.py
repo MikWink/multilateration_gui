@@ -358,7 +358,7 @@ class MainWindow(QMainWindow):
     def on_compare_clicked(self, web):
         # load json file
         try:
-            ms_pos = self.read_json('finland_eval/ms_positions.json')
+            ms_pos = self.read_json('evaluation_data/station_setups/ms_positions.json')
         except Exception as e:
             print(f"Error: {e}")
 

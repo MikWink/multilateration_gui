@@ -12,7 +12,7 @@ def read_json(file_path):
         return data
 
 
-def extract_bs_pos(file_path='finland_real_setup.json'):
+def extract_bs_pos(file_path='../evaluation_data/station_setups/finland_real_setup.json'):
     bs_data = read_json(file_path)
     bs = []
     # Iterate over the values of the dictionary
@@ -23,7 +23,7 @@ def extract_bs_pos(file_path='finland_real_setup.json'):
     return bs
 
 
-def extract_ms_pos(file_path='ms_positions.json'):
+def extract_ms_pos(file_path='../evaluation_data/station_setups/ms_positions.json'):
     ms_data = read_json(file_path)
     ms = []
     for key, value in ms_data.items():
@@ -56,7 +56,7 @@ for i in range(5):
     else:
         print(f'\n\n####$####\n{i}\n########\n\n')
         endpoint_id = f'70-b3-d5-67-70-ff-03-4{i}'
-        NPZ = np.load(f'NPZ_Data/70-b3-d5-67-70-ff-03-4{i}.npz', allow_pickle=True)
+        NPZ = np.load(f'../evaluation_data/NPZ_Data/70-b3-d5-67-70-ff-03-4{i}.npz', allow_pickle=True)
         tdoa_0 = NPZ['tdoa_0']
         tdoa_1 = NPZ['tdoa_1']
 
