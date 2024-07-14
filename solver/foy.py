@@ -108,14 +108,14 @@ class Foy:
                 (self.bs_list[0][0] - self.ms[0]) ** 2 + (self.bs_list[0][1] - self.ms[1]) ** 2 + (
                         self.bs_list[0][2] - self.ms[2]) ** 2))
 
-        print(f"R_i_0: {self.R_i_0}")
+        #print(f"R_i_0: {self.R_i_0}")
         for i, t in enumerate(self.R_i_0):
             randy = np.random.normal(0, self.tdoa_std, 1)
-            print(f'Randy: {randy}\ntype: {type(randy[0])}')
+            #print(f'Randy: {randy}\ntype: {type(randy[0])}')
             self.R_i_0[i] += float(randy[0])
 
-        print(f"R_i: {self.R_i_real}")
-        print(f"R_i_0: {self.R_i_0}\n")
+        #print(f"R_i: {self.R_i_real}")
+        #print(f"R_i_0: {self.R_i_0}\n")
 
     def convert_coordinates(self):
         for bs in self.bs_list:

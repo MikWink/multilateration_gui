@@ -249,11 +249,11 @@ def tdoah(bs, ms):
     P1 = (bs[0][1], bs[1][1], bs[2][1])
     P2 = (bs[0][2], bs[1][2], bs[2][2])
 
-    print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
+    #print(f'P0:\nfic: {P0[0]}\nlac: {P0[1]}\n\nP1:\nfic: {P1[0]}\nlac: {P1[1]}\n\nP2:\nfir: {P2[0]}\nlar: {P2[1]}\n')
 
     locations = [P0, P1, P2]
 
-    print(k2w(5621990, 636646, 100))
+    #print(k2w(5621990, 636646, 100))
 
     """# Coordinates of locations (WGS-84)
     locations = {
@@ -287,14 +287,14 @@ def tdoah(bs, ms):
 
     # Target coordinates (WGS-84)
     target = ms[0], ms[1], ms[2]
-    print(f'target:\nfit: {target[0]}\nlat: {target[1]}\nalt: {target[2]}\n')
+    #print(f'target:\nfit: {target[0]}\nlat: {target[1]}\nalt: {target[2]}\n')
     # Convert target coordinates to Cartesian
     target_cartesian = w2k(target[0], target[1], target[2])
     if DEBUG:
         print("test", k2w(target_cartesian[0], target_cartesian[1], target_cartesian[2]))
 
-    print(f'locations_cartesian: {locations_cartesian}\n')
-    print(f'target: {target_cartesian}\n')
+    #print(f'locations_cartesian: {locations_cartesian}\n')
+    #print(f'target: {target_cartesian}\n')
 
     # Calculate TDOA values
     r_0 = np.sqrt((target_cartesian[0] - locations_cartesian["P0"][0]) ** 2 + (
@@ -412,9 +412,9 @@ def tdoah(bs, ms):
             # Transform to spherical coordinates (WGS-84)
             FI[i], LA[i], H[i] = k2w(xxx[i], yyy[i], zzz[i])
         # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-    print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-    print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-    print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+    #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+    #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+    #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
     solution = []
     for i, e in enumerate(FI):
         coords = (FI[i], LA[i], H[i])
@@ -424,10 +424,10 @@ def tdoah(bs, ms):
                     print(f'No real solution for coords: {coords}')
                 break
             if coord == coords[2]:
-                print(f'Real solution for coords: {coords}')
+                #print(f'Real solution for coords: {coords}')
                 solution = coords
 
-    print(f'FI: {deg2dms(solution[0])}\nLA: {deg2dms(solution[1])}\nH: {solution[2]}\n')
+    #print(f'FI: {deg2dms(solution[0])}\nLA: {deg2dms(solution[1])}\nH: {solution[2]}\n')
 
 
 

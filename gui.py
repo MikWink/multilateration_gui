@@ -1,8 +1,11 @@
 from PyQt5.QtWidgets import QApplication, QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
-    QLineEdit, QPushButton, QComboBox, QFileDialog
+    QLineEdit, QPushButton, QComboBox, QFileDialog, QDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+import plotly.graph_objects as go
+
 from map_generator import Map
+from map_generator_v2 import Map as Map2
 import json
 import sys
 import os
@@ -16,6 +19,7 @@ from solver.tdoah_class import Tdoah
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.eval_window = None
         self.web = QWebEngineView()
         self.master_layout = QGridLayout()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
@@ -128,6 +132,7 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
+
         try:
             # do the tdoah evaluation multiple times
             target_list = [[] for _ in range(3)]
@@ -154,6 +159,7 @@ class MainWindow(QMainWindow):
 
             #print(f'Target_list: {target_list}\n')
             self.generated_map.show_result(target_list, 'blue', 'markers')
+            tdoah_targets = target_list
 
             # do the 4bs evaluation multiple times
             target_list = [[] for _ in range(3)]
@@ -182,7 +188,30 @@ class MainWindow(QMainWindow):
 
             #print(f'Foy Solver: {target_list}')
             self.generated_map.show_result(target_list, 'green', 'markers')
+            foy_targets = target_list
             web.reload()
+
+
+            # Load Eval window
+            if self.eval_window is None:
+                print(f'input_fields: {self.input_fields}')
+                points = []
+                i = 0
+                try:
+                    for k, field in enumerate(self.input_fields):
+                        if i % 3 == 0 and i < len(self.input_fields) - 2:
+                            points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(),
+                                           self.input_fields[k + 2].text()])
+
+                        i += 1
+                except Exception as e:
+                    print(f'Error: {e}')
+                print(f'POINTS: {points}')
+                self.eval_window = EvalWindow(points, foy_targets, tdoah_targets)
+                self.eval_window.show()
+                self.eval_window.raise_()
+                self.eval_window.activateWindow()
+
         except Exception as e:
             print(f'Error: {e}')
 
@@ -584,34 +613,107 @@ class MainWindow(QMainWindow):
             print(f"Error: {e}")
 
 
-class MainWindow2(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.showMaximized()
+class EvalWindow(QDialog):
+    def __init__(self, input_fields, foy_targets, tdoah_targets):
+        self.input_fields = input_fields
+        self.foy_targets = foy_targets
+        self.tdoah_targets = tdoah_targets
+        self.ms = None
 
-        self.view = QWebEngineView(self)
-        self.view.load(QUrl.fromLocalFile("/terrain_map.html"))
+        print(f'foy_targets: {foy_targets}\ntdoah_targets: {tdoah_targets}')
 
-        # self.setCentralWidget(self.view)
-        self.create_base_station_cards()
+        self.map = None
+        try:
+            super().__init__(None)
+            self.web_view = None
+            self.input_fields = self.input_fields
 
-    def create_base_station_cards(self):
-        # Example base station data
-        base_stations = [
-            ("Base Station 1", 100, 200, 50, 30),
-            ("Base Station 2", 350, 150, 80, 45),
-            # ... more base stations
-        ]
 
-        for name, x, y, z, height in base_stations:
-            card = BaseStationCard(name, x, y, z, height)
+            self.init_map()
+            self.init_ui()
+        except Exception as e:
+            print(f'Error: {e}')
 
-            # Calculate card position relative to the chart/web view
-            card_x = self.view.x() + x  # Adjust as needed
-            card_y = self.view.y() + y
+    def init_map(self):
+        print(f'$input field: {self.input_fields}')
+        self.map = Map2(self.input_fields)
+        self.map.init_earth()
+        self.ms = self.map.get_ms()
+        self.ms = w2k(float(self.ms[0]), float(self.ms[1]), float(self.ms[2]))
+        self.foy_targets[0] -= self.ms[0]
+        self.foy_targets[1] -= self.ms[1]
+        self.foy_targets[2] -= self.ms[2]
+        self.tdoah_targets[0] -= self.ms[0]
+        self.tdoah_targets[1] -= self.ms[1]
+        self.tdoah_targets[2] -= self.ms[2]
+        self.map.add_trace(go.Scatter3d(x=self.foy_targets[1], y=self.foy_targets[0], z=self.foy_targets[2], name="Foy", mode='markers', marker=dict(color='green')), 'foy')
+        self.map.add_trace(go.Scatter3d(x=self.tdoah_targets[1], y=self.tdoah_targets[0], z=self.tdoah_targets[2], name="TDOAH", mode='markers', marker=dict(color='blue')), 'tdoah')
+        self.map.show()
 
-            # card.setGeometry(card_x, card_y, card.sizeHint().width(), card.sizeHint().height())
-            card.show()
+
+    def init_ui(self):
+        self.setWindowTitle("Evaluation")
+        self.resize(800, 600)
+
+        self.web_view = QWebEngineView(self)
+        self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        interface = QWidget()
+        interface.setLayout(self.init_interface())
+
+
+        # Load HTML file directly into the web view
+        with open('coordinate_map.html', 'r') as f:
+            html = f.read()
+            self.web_view.setHtml(html)
+
+        layout = QVBoxLayout()
+        layout.addWidget(interface)
+        layout.addWidget(self.web_view)
+
+        self.setLayout(layout)  # Set layout to the QDialog itself
+
+    def init_interface(self):
+        layout = QGridLayout()
+        update_button = QPushButton("Update")
+        update_button.clicked.connect(lambda: self.on_update_clicked())
+        layout.addWidget(update_button, 0, 0)
+
+        earth_button = QPushButton("Earth on/off")
+        earth_button.clicked.connect(lambda: self.on_earth_clicked())
+        layout.addWidget(earth_button, 0, 1)
+
+        bs_button = QPushButton("BS on/off")
+        bs_button.clicked.connect(lambda: self.on_bs_clicked())
+        layout.addWidget(bs_button, 0, 2)
+
+        ms_button = QPushButton("MS on/off")
+        ms_button.clicked.connect(lambda: self.on_ms_clicked())
+        layout.addWidget(ms_button, 0, 3)
+
+        return layout
+
+    def on_update_clicked(self):
+        # Load HTML file directly into the web view
+        with open('coordinate_map.html', 'r') as f:
+            html = f.read()
+            self.web_view.setHtml(html)
+
+    def on_earth_clicked(self):
+        self.map.toggle_earth()
+        self.map.show()
+        self.on_update_clicked()
+
+    def on_bs_clicked(self):
+        self.map.toggle_stations('bs')
+        self.map.show()
+        self.on_update_clicked()
+
+    def on_ms_clicked(self):
+        self.map.toggle_stations('ms')
+        self.map.show()
+        self.on_update_clicked()
+
 
 
 class BaseStationCard(QWidget):

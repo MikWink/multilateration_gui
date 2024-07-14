@@ -53,6 +53,7 @@ class Map:
             file.write(html_string)
 
     def update(self, points, empty_map=False):
+        print(points)
         new_data = list(self.fig.data)
         if not empty_map:
             new_data = new_data[:1]
