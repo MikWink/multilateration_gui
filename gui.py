@@ -1,8 +1,10 @@
-from PyQt5.QtWidgets import QSizePolicy, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
+from PyQt5.QtWidgets import QSizePolicy, QApplication, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
     QLineEdit, QPushButton, QFileDialog, QDialog
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
+
+from utilities.evaluator import Evaluator
 
 from map_generator import Map
 from map_generator_v2 import Map as Map2
@@ -42,6 +44,8 @@ class MainWindow(QMainWindow):
         self.generated_map = Map()
         self.setup()
         self.on_update_clicked(self.web)
+        self.file_path = os.path.dirname(os.path.abspath(__file__))
+        print(f'File path: {self.file_path}')
 
     def setup(self):
         self.user_input.setLayout(self.initUI())
@@ -205,13 +209,19 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     print(f'Error: {e}')
                 print(f'POINTS: {points}')
-                self.eval_window = EvalWindow(points, foy_targets, tdoah_targets)
+                self.eval_window = EvalWindow(self.file_path, points, foy_targets, tdoah_targets, self)
+                self.eval_window.setAttribute(Qt.WA_DeleteOnClose)
                 self.eval_window.show()
                 self.eval_window.raise_()
                 self.eval_window.activateWindow()
 
         except Exception as e:
             print(f'Error: {e}')
+
+    def closeEvent(self, event):
+        if self.eval_window:  # Check if eval_window exists
+            self.eval_window.close()  # Close EvalWindow when MainWindow closes
+        super().closeEvent(event)
 
     def on_value_changed(self, slider, label, map=False):
         if map == True:
@@ -612,7 +622,9 @@ class MainWindow(QMainWindow):
 
 
 class EvalWindow(QDialog):
-    def __init__(self, input_fields, foy_targets, tdoah_targets):
+    def __init__(self, file_path, input_fields, foy_targets, tdoah_targets, parent):
+        super().__init__(parent)
+        self.file_path = file_path
         self.input_fields = input_fields
         self.foy_targets = foy_targets
         self.tdoah_targets = tdoah_targets
@@ -633,7 +645,6 @@ class EvalWindow(QDialog):
             print(f'Error: {e}')
 
     def init_map(self):
-        print(f'$input field: {self.input_fields}')
         self.map = Map2(self.input_fields)
         self.map.init_earth()
         self.ms = self.map.get_ms()
@@ -692,25 +703,38 @@ class EvalWindow(QDialog):
         return layout
 
     def on_update_clicked(self):
+        try:
+            self.map = Map2(self.input_fields)
+            self.map.init_earth()
+            evaluator = Evaluator(self.file_path, 'finland_real_setup.json', 'ms_positions.json', '70-b3-d5-67-70-ff-03-40.npz')
+            tdoah_trace = evaluator.eval_tdoah()
+            self.map.add_trace(tdoah_trace, 'tdoah_eval')
+            self.map.show()
+            self.update()
+        except Exception as e:
+            print(f'Error: {e}')
+
+    def update(self):
         # Load HTML file directly into the web view
         with open('coordinate_map.html', 'r') as f:
             html = f.read()
             self.web_view.setHtml(html)
 
+
     def on_earth_clicked(self):
         self.map.toggle_earth()
         self.map.show()
-        self.on_update_clicked()
+        self.update()
 
     def on_bs_clicked(self):
         self.map.toggle_stations('bs')
         self.map.show()
-        self.on_update_clicked()
+        self.update()
 
     def on_ms_clicked(self):
         self.map.toggle_stations('ms')
         self.map.show()
-        self.on_update_clicked()
+        self.update()
 
 
 
