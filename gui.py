@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from utilities.evaluator import Evaluator
 
 from map_generator import Map
-from map_generator_v2 import Map as Map2
+from eval_plot import EvalPlot as Map2
 import json
 import os
 from solver.foy import Foy
@@ -100,20 +100,12 @@ class MainWindow(QMainWindow):
         start_button.clicked.connect(
             lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
 
-        # Eval output
-        tdoa_deviation = QLabel("-")
-        baro_deviation = QLabel("-")
+
         start_eval_btn = QPushButton("Start")
         start_eval_btn.clicked.connect(
             lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
 
-        layout_right.addWidget(QLabel("Eval output:"), 0, 3, 1, 2)
-        layout_right.addWidget(QLabel("TDOA"), 1, 3)
-        layout_right.addWidget(QLabel("Baro"), 1, 4)
-        layout_right.addWidget(tdoa_deviation, 2, 3)
-        layout_right.addWidget(baro_deviation, 2, 4)
-        layout_right.addWidget(start_eval_btn, 3, 4)
-        widget_right.setLayout(layout_right)
+
 
         # Adding Widgets
         layout_left.addWidget(QLabel("TDOA Std:"), 0, 0)

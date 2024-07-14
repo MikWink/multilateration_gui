@@ -8,7 +8,7 @@ from pyproj import CRS, Transformer
 import time
 
 
-class Map:
+class EvalPlot:
     def __init__(self, points):
         self.points = points
         self.ms_point = points[-1]
