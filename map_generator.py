@@ -10,7 +10,9 @@ class Map:
         im = Image.open('ilmenau_r5km_c3.tif')
 
         self.imarray = np.array(im)
+        print(self.imarray)
         self.imarray = self.imarray[::-1]
+        print(self.imarray)
 
         ilmenau_area = np.array([[632621, 5609803], [641086, 5623932]])
         ilmenau_real_area = np.array([[10.875, 50.625], [11, 50.75]])
@@ -175,3 +177,6 @@ class Map:
         # Update the map window with the new plot
         with open('terrain_map.html', 'w') as file:
             file.write(html_string)
+
+
+map = Map()
