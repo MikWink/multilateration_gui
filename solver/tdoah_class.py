@@ -147,19 +147,19 @@ class Tdoah:
                 # Transform to spherical coordinates (WGS-84)
                 FI[i], LA[i], H[i] = self.k2w(xxx[i], yyy[i], zzz[i])
             # else:  # If KK[i] <= 0, values remain NaN (already initialized)
-        print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
-        print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
-        print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
+        #print(f'#########################################################\n#######################  RESULTS  #######################\n#########################################################\n')
+        #print(f'xxx: {xxx}\nyyy: {yyy}\nzzz: {zzz}\n')
+        #print(f'FI: {FI}\nLA: {LA}\nH: {H}\n')
         solution = []
-        print("Checking for real solutions...")
+        #print("Checking for real solutions...")
         for i, e in enumerate(FI):
             coords = (FI[i], LA[i], H[i])
             for coord in coords:
                 if coord < 0 or np.isnan(coord):
-                    print(f'No real solution for coords: {coords}')
+                    #print(f'No real solution for coords: {coords}')
                     break
                 if coord == coords[2]:
-                    print(f'Real solution for coords: {coords}')
+                    #print(f'Real solution for coords: {coords}')
                     solution = coords
                     solution_wgs = xxx[i], yyy[i], zzz[i]
 
@@ -250,7 +250,7 @@ class Tdoah:
         aa1 = a3 * a1 - 4 * a0
         aa0 = 4 * a2 * a0 - a1**2 - a3**2 * a0
 
-        print(f'aa0: {aa0}\naa1: {aa1}\naa2: {aa2}\n')
+        #print(f'aa0: {aa0}\naa1: {aa1}\naa2: {aa2}\n')
 
         # Find a real root of the cubic polynomial
         discriminant = (-aa2**2/9 + aa1/3)**3 + (-aa2**3/27 + (aa1*aa2)/6 + aa0/2)**2

@@ -4,10 +4,11 @@ from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
 
+from eval_plot import EvalPlot
 from utilities.evaluator import Evaluator
 
 from map_generator import Map
-from eval_plot import EvalPlot as Map2
+from map_generatorv2 import Map as Map2
 import json
 import os
 from solver.foy import Foy
@@ -21,8 +22,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.eval_window = None
         self.web = QWebEngineView()
-        self.master_layout = QGridLayout()
         self.web.load(QUrl.fromLocalFile("/terrain_map.html"))
+        self.master_layout = QGridLayout()
         self.json_file = None
         self.mode = "4BS"
         self.unit = "Deg"
@@ -42,10 +43,11 @@ class MainWindow(QMainWindow):
         self.bs_labels = []
         self.result_labels = []
         self.generated_map = Map()
+        self.map2 = Map2()
+
         self.setup()
         self.on_update_clicked(self.web)
         self.file_path = os.path.dirname(os.path.abspath(__file__))
-        print(f'File path: {self.file_path}')
 
     def setup(self):
         self.user_input.setLayout(self.initUI())
@@ -85,7 +87,7 @@ class MainWindow(QMainWindow):
         baro_std_slider = QSlider(Qt.Horizontal)
         baro_std_slider.setMinimum(0)
         baro_std_slider.setMaximum(10)
-        baro_std_label = QLabel("0,25")
+        baro_std_label = QLabel("0")
         baro_std_unit = QLabel(" x Std")
         baro_std_slider.sliderReleased.connect(lambda: self.on_baro_std_changed(baro_std_slider, baro_std_label))
         baro_std_slider.valueChanged.connect(lambda: self.on_value_changed(baro_std_slider, baro_std_label, True))
@@ -93,19 +95,18 @@ class MainWindow(QMainWindow):
         # Iterations Input
         iterations_label = QLabel("Iterations:")
         iterations_input = QLineEdit()
-        iterations_input.setText("100")
+        iterations_input.setText("5")
 
         # Start button
         start_button = QPushButton("Start")
         start_button.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
-
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 12.48,
+                                         int(iterations_input.text())))
 
         start_eval_btn = QPushButton("Start")
         start_eval_btn.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text())*12.48, int(iterations_input.text())))
-
-
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 12.48,
+                                         int(iterations_input.text())))
 
         # Adding Widgets
         layout_left.addWidget(QLabel("TDOA Std:"), 0, 0)
@@ -126,37 +127,43 @@ class MainWindow(QMainWindow):
         return layout
 
     def on_eval_clicked(self, web, tdoa_std, baro_std, n):
-
+        self.map2.remove_trace('tdoah')
+        self.map2.remove_trace('foy')
+        print(f'tdoa_std: {tdoa_std}, baro_std: {baro_std}, n: {n}')
         try:
             # do the tdoah evaluation multiple times
             target_list = [[] for _ in range(3)]
-            print(f'Test: {baro_std}')
+            target_list_wgs = []
+            # print(f'Test: {baro_std}')
 
-
-            #print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
-            tdoa_vals = np.random.normal(0, tdoa_std, n*2)
+            # print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
+            tdoa_vals = np.random.normal(0, tdoa_std, n * 3)
             baro_vals = np.random.normal(0, baro_std, n)
             for i in range(n):
                 self.conv_values = self.convert_input_field(baro_vals[i])
                 ms = self.conv_values.pop()
                 bs = self.conv_values
                 ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
-                print(f'Anforderungen:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
-                tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i+n], baro_vals[i])
+                # print(f'Anforderungen:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
+                tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i + n], baro_vals[i])
                 target = tdoah_solver.solve()
 
-                #print(target_list)
+                # print(f'Targets before conv: {target}')
+                target_list_wgs.append(k2w(target[0][0], target[1][0], target[2][0]))
                 target_list[0].append(target[0][0])
                 target_list[1].append(target[1][0])
                 target_list[2].append(target[2][0])
-                print(f'Target_z: {target[2][0]}')
+                # print(f'Target_z: {target[2][0]}')
 
-            #print(f'Target_list: {target_list}\n')
-            self.generated_map.show_result(target_list, 'blue', 'markers')
+            print(f'WGS List: {target_list_wgs}\nECEF List: {target_list}')
+            tdoah_trace = self.map2.make_trace(target_list_wgs, 'scatter', 'TDOAH', 'blue', 3)
+            self.map2.add_trace(tdoah_trace, 'tdoah')
+            self.map2.update()
             tdoah_targets = target_list
 
             # do the 4bs evaluation multiple times
             target_list = [[] for _ in range(3)]
+            target_list_wgs = []
             # bringing the input in the right form for foy
             foy_bs = [[] for _ in range(4)]
             for e in bs:
@@ -168,47 +175,53 @@ class MainWindow(QMainWindow):
             try:
                 ms = [ms[0], ms[1], ms[2]]
             except Exception as e:
-                print(f'Error: {e}')
+                print(f'1Error: {e}')
             for i in range(n):
-                #print(f'Loop: {i}')
-                try:
-                    foy_solver = Foy(foy_bs, ms, tdoa_vals[i], baro_vals[i])
-                    foy_solver.solve()
-                except Exception as e:
-                    print(f'Error: {e}')
+                # print(f'Loop: {i}')
+                foy_solver = Foy(foy_bs, ms, tdoa_vals[i], tdoa_vals[i + n], tdoa_vals[i + 2 * n],
+                                 baro_vals[i])
+                foy_solver.solve()
+                target_list_wgs.append(k2w(foy_solver.guesses[0].pop(), foy_solver.guesses[1].pop(),
+                                           foy_solver.guesses[2].pop()))
                 target_list[0].append(foy_solver.guesses[0].pop())
                 target_list[1].append(foy_solver.guesses[1].pop())
                 target_list[2].append(foy_solver.guesses[2].pop())
 
-            #print(f'Foy Solver: {target_list}')
-            self.generated_map.show_result(target_list, 'green', 'markers')
+            print(f'Foy Solver: {target_list}')
+            foy_trace = self.map2.make_trace(target_list_wgs, 'scatter', 'Foy', 'green', 3)
+            self.map2.add_trace(foy_trace, 'foy')
+            self.map2.update()
             foy_targets = target_list
+            print("Error not here 2")
             web.reload()
+            print("Error not here 3")
+            print(f'input_fields: {self.input_fields}')
+            points = []
+            i = 0
+            try:
+                for k, field in enumerate(self.input_fields):
+                    if i % 3 == 0 and i < len(self.input_fields) - 2:
+                        points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(),
+                                       self.input_fields[k + 2].text()])
 
+                    i += 1
+            except Exception as e:
+                print(f'2Error: {e}')
+            print(f'POINTS: {points}')
 
             # Load Eval window
             if self.eval_window is None:
-                print(f'input_fields: {self.input_fields}')
-                points = []
-                i = 0
-                try:
-                    for k, field in enumerate(self.input_fields):
-                        if i % 3 == 0 and i < len(self.input_fields) - 2:
-                            points.append([self.input_fields[k].text(), self.input_fields[k + 1].text(),
-                                           self.input_fields[k + 2].text()])
-
-                        i += 1
-                except Exception as e:
-                    print(f'Error: {e}')
-                print(f'POINTS: {points}')
                 self.eval_window = EvalWindow(self.file_path, points, foy_targets, tdoah_targets, self)
                 self.eval_window.setAttribute(Qt.WA_DeleteOnClose)
                 self.eval_window.show()
                 self.eval_window.raise_()
                 self.eval_window.activateWindow()
+            else:
+                self.eval_window.init_map(self.file_path, points, foy_targets, tdoah_targets)
+                self.eval_window.update()
 
         except Exception as e:
-            print(f'Error: {e}')
+            print(f'3Error: {e}')
 
     def closeEvent(self, event):
         if self.eval_window:  # Check if eval_window exists
@@ -332,7 +345,7 @@ class MainWindow(QMainWindow):
                 values.append([float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
                                float(self.input_fields[i + 2].text())])
         for i, value in enumerate(values):
-            #print(f'ms_h_real: {value[2]}')
+            # print(f'ms_h_real: {value[2]}')
             conv_values.append(w2k(value[0], value[1], value[2]))
         return conv_values
 
@@ -491,38 +504,35 @@ class MainWindow(QMainWindow):
 
     def on_update_clicked(self, web):
         try:
-            if self.mode == "4BS":
-                num = 5
-            else:
-                num = 4
-            points = [[] for _ in range(num)]
-            for i in range(num):
-                points[i] = [0 for _ in range(3)]
-            points[num - 1] = [float(self.input_fields[len(self.input_fields) - 3].text()),
-                               float(self.input_fields[len(self.input_fields) - 2].text()),
-                               float(self.input_fields[len(self.input_fields) - 1].text())]
+            self.map2.clear()
+            points = self.input_fields_to_points(self.mode)
+            ms = points.pop()
+            bs = points
+            print(f'BS: {bs}\nMS: {ms}\n')
             self.conv_values = self.convert_input_field()
-            for i, input_field in enumerate(self.input_fields):
-                if self.mode == "3BS" and i > 8:
-                    break
-                else:
-                    i1 = i // 3
-                    i2 = i % 3
-                    points[i1][i2] = input_field.text()
-
-                if i1 < 4 and i2 < 3:
-                    self.bs_labels[i1][i2].setText(str(self.conv_values[i1][i2]))
-
-            #print(f"Points: {points}")
-            if float(self.input_fields[0].text()) > 65.0:
-                print(float(self.input_fields[0].text()))
-                self.generated_map.update(points, True)
-                print("gogogo")
-            else:
-                self.generated_map.update(points)
+            print(f'Conv_values: {self.conv_values}')
+            for i, value in enumerate(self.conv_values):
+                if i < 4:
+                    for j in range(3):
+                        self.bs_labels[i][j].setText(str(value[j]))
+            self.map2.add_trace(self.map2.make_trace([ms], 'scatter', 'MS', 'red'))
+            self.map2.add_trace(self.map2.make_trace(bs, 'scatter', 'BS', 'blue'))
+            self.map2.update()
             web.reload()
         except Exception as e:
             print(f"Error: {e}")
+
+    def input_fields_to_points(self, mode='4BS'):
+        values = []
+        for i, input in enumerate(self.input_fields):
+            if i % 3 == 0 and i < len(self.input_fields) - 2:
+                if mode == '3BS' and i == 9:
+                    continue
+                else:
+                    values.append([float(self.input_fields[i].text()), float(self.input_fields[i + 1].text()),
+                                   float(self.input_fields[i + 2].text())])
+
+        return values
 
     def on_calc_clicked(self, web):
         try:
@@ -540,23 +550,22 @@ class MainWindow(QMainWindow):
                 for e in ms:
                     foy_bs[3].append(e)
                 ms = [ms[0], ms[1], ms[2]]
-                #print(f"Solver input: {foy_bs, ms}")
+                # print(f"Solver input: {foy_bs, ms}")
                 solver = Foy(foy_bs, ms)
                 solver.solve()
-                #print(f"Solver output: {solver.guesses}")
+                # print(f"Solver output: {solver.guesses}")
 
-
-                #print(f"Solver output: {solver.guesses}")
+                # print(f"Solver output: {solver.guesses}")
                 self.generated_map.show_result(solver.guesses)
                 self.print_solution(solver.guesses)
                 # Call the calculation function
                 # Update the map
                 web.reload()
             elif self.mode == "3BS":
-                #print(f"Solver input: {bs, ms}")
+                # print(f"Solver input: {bs, ms}")
                 solver = Tdoah(bs, ms, ms_h)
                 target = solver.solve()
-                #print(f'Final: {target}')
+                # print(f'Final: {target}')
                 self.generated_map.show_result(target)
                 self.print_solution(target)
                 web.reload()
@@ -575,15 +584,15 @@ class MainWindow(QMainWindow):
             else:
                 lat, long, h = k2w(x, y, z)
                 self.result_labels[i].setText(str(lat))
-                self.result_labels[i+1].setText(str(long))
-                self.result_labels[i+2].setText(str(h))
+                self.result_labels[i + 1].setText(str(long))
+                self.result_labels[i + 2].setText(str(h))
 
     def get_solver_input(self):
         bs = [[], [], []]
         ms = []
-        #print(f"Input fields: {self.input_fields}")
+        # print(f"Input fields: {self.input_fields}")
         for i, input in enumerate(self.input_fields):
-            #print(f'i: {i}, input: {input.text()}')
+            # print(f'i: {i}, input: {input.text()}')
             if i < len(self.input_fields) - 3:
                 if i % 3 == 0:
                     bs[0].append(float(input.text()))
@@ -622,22 +631,20 @@ class EvalWindow(QDialog):
         self.tdoah_targets = tdoah_targets
         self.ms = None
 
-        print(f'foy_targets: {foy_targets}\ntdoah_targets: {tdoah_targets}')
-
         self.map = None
         try:
-            super().__init__(None)
-            self.web_view = None
-            self.input_fields = self.input_fields
 
-
-            self.init_map()
+            self.init_map(self.file_path, self.input_fields, self.foy_targets, self.tdoah_targets)
             self.init_ui()
         except Exception as e:
             print(f'Error: {e}')
 
-    def init_map(self):
-        self.map = Map2(self.input_fields)
+    def init_map(self, file_path, input_fields, foy_targets, tdoah_targets):
+        self.file_path = file_path
+        self.input_fields = input_fields
+        self.foy_targets = foy_targets
+        self.tdoah_targets = tdoah_targets
+        self.map = EvalPlot(self.input_fields)
         self.map.init_earth()
         self.ms = self.map.get_ms()
         self.ms = w2k(float(self.ms[0]), float(self.ms[1]), float(self.ms[2]))
@@ -647,8 +654,11 @@ class EvalWindow(QDialog):
         self.tdoah_targets[0] -= self.ms[0]
         self.tdoah_targets[1] -= self.ms[1]
         self.tdoah_targets[2] -= self.ms[2]
-        self.map.add_trace(go.Scatter3d(x=self.foy_targets[1], y=self.foy_targets[0], z=self.foy_targets[2], name="Foy", mode='markers', marker=dict(color='green')), 'foy')
-        self.map.add_trace(go.Scatter3d(x=self.tdoah_targets[1], y=self.tdoah_targets[0], z=self.tdoah_targets[2], name="TDOAH", mode='markers', marker=dict(color='blue')), 'tdoah')
+        self.map.add_trace(go.Scatter3d(x=self.foy_targets[1], y=self.foy_targets[0], z=self.foy_targets[2], name="Foy",
+                                        mode='markers', marker=dict(size=3, color='green', symbol='x')), 'foy')
+        self.map.add_trace(
+            go.Scatter3d(x=self.tdoah_targets[1], y=self.tdoah_targets[0], z=self.tdoah_targets[2], name="TDOAH",
+                         mode='markers', marker=dict(size=3, color='blue', symbol='x')), 'tdoah')
         self.map.show()
 
 
@@ -661,7 +671,6 @@ class EvalWindow(QDialog):
 
         interface = QWidget()
         interface.setLayout(self.init_interface())
-
 
         # Load HTML file directly into the web view
         with open('coordinate_map.html', 'r') as f:
@@ -696,9 +705,10 @@ class EvalWindow(QDialog):
 
     def on_update_clicked(self):
         try:
-            self.map = Map2(self.input_fields)
+            self.map = EvalPlot(self.input_fields)
             self.map.init_earth()
-            evaluator = Evaluator(self.file_path, 'finland_real_setup.json', 'ms_positions.json', '70-b3-d5-67-70-ff-03-40.npz')
+            evaluator = Evaluator(self.file_path, 'finland_real_setup.json', 'ms_positions.json',
+                                  '70-b3-d5-67-70-ff-03-40.npz')
             tdoah_trace = evaluator.eval_tdoah()
             self.map.add_trace(tdoah_trace, 'tdoah_eval')
             self.map.show()
@@ -711,7 +721,6 @@ class EvalWindow(QDialog):
         with open('coordinate_map.html', 'r') as f:
             html = f.read()
             self.web_view.setHtml(html)
-
 
     def on_earth_clicked(self):
         self.map.toggle_earth()
@@ -727,7 +736,6 @@ class EvalWindow(QDialog):
         self.map.toggle_stations('ms')
         self.map.show()
         self.update()
-
 
 
 class BaseStationCard(QWidget):

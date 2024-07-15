@@ -179,4 +179,3 @@ class Map:
             file.write(html_string)
 
 
-map = Map()

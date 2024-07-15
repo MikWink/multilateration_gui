@@ -26,13 +26,13 @@ class EvalPlot:
         self.ms_trace = go.Scatter3d(x=[self.points[-1, 0]], y=[self.points[-1, 1]], z=[self.points[-1, 2]],
                                      mode='markers',
                                      name='Mobile Station',
-                                     marker=dict(size=5, color='red', symbol='x'))
+                                     marker=dict(size=5, color='red', symbol='diamond-open'))
         fig.add_trace(self.ms_trace)
         fig.data[-1].uid = 'ms'
         self.bs_trace = go.Scatter3d(x=self.points[:-1, 0], y=self.points[:-1, 1], z=self.points[:-1, 2],
                                      mode='markers',
                                      name='Basestations',
-                                     marker=dict(size=5, color='blue'))
+                                     marker=dict(size=5, color='blue', symbol='diamond-open'))
         fig.add_trace(self.bs_trace)
         fig.data[-1].uid = 'bs'
 

@@ -4,10 +4,13 @@ import numpy as np
 import math
 
 class Foy:
-    def __init__(self, bs_list, ms, tdoa_std=0, baro_std=0):
+    def __init__(self, bs_list, ms, tdoa_0_std=0, tdoa_1_std=0, tdoa_2_std=0, baro_std=0):
         self.bs_list = bs_list
         self.ms = ms
-        self.tdoa_std = tdoa_std
+        self.tdoa_0_std = tdoa_0_std
+        self.tdoa_1_std = tdoa_1_std
+        self.tdoa_2_std = tdoa_2_std
+        self.tdoa_std = [tdoa_0_std, tdoa_1_std, tdoa_2_std]
         self.baro_std = baro_std
         self.h = np.zeros(3)
         self.G = np.zeros((3, 3))
@@ -107,11 +110,12 @@ class Foy:
                 (self.bs_list[0][0] - self.ms[0]) ** 2 + (self.bs_list[0][1] - self.ms[1]) ** 2 + (
                         self.bs_list[0][2] - self.ms[2]) ** 2))
 
-        #print(f"R_i_0: {self.R_i_0}")
+
+        print(f"R_i_0: {self.R_i_0}")
         for i, t in enumerate(self.R_i_0):
-            randy = np.random.normal(0, self.tdoa_std, 1)
-            #print(f'Randy: {randy}\ntype: {type(randy[0])}')
-            self.R_i_0[i] += float(randy[0])
+            if i > 0:
+                print(f'i: {i}')
+                self.R_i_0[i] += self.tdoa_std[i-1]
 
         #print(f"R_i: {self.R_i_real}")
         #print(f"R_i_0: {self.R_i_0}\n")
