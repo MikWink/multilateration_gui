@@ -37,11 +37,10 @@ class EvalPlot:
         fig.data[-1].uid = 'bs'
 
         fig.update_layout(
-            margin=dict(l=0, r=0, b=0, t=40),
+            margin=dict(l=0, r=0, b=0, t=10),
             scene=dict(xaxis_title='X in m',
                        yaxis_title='Y in m',
-                       zaxis_title='Z in m'),
-            title='Localization Error Map'
+                       zaxis_title='Z in m')
         )
 
         return fig

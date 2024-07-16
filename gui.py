@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QSizePolicy, QApplication, QSlider, QVBoxLayout, QMainWindow, QWidget, QGridLayout, QLabel, \
-    QLineEdit, QPushButton, QFileDialog, QDialog
+    QLineEdit, QPushButton, QFileDialog, QDialog, QFrame
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
@@ -15,6 +15,7 @@ from solver.foy import Foy
 import pvlib
 from solver.tdoah import *
 from solver.tdoah_class import Tdoah
+import utilities.evalution_functions as ef
 
 
 class MainWindow(QMainWindow):
@@ -44,6 +45,8 @@ class MainWindow(QMainWindow):
         self.result_labels = []
         self.generated_map = Map()
         self.map2 = Map2()
+
+        self.setWindowTitle("Multilateration Simulator")
 
         self.setup()
         self.on_update_clicked(self.web)
@@ -181,8 +184,8 @@ class MainWindow(QMainWindow):
                 foy_solver = Foy(foy_bs, ms, tdoa_vals[i], tdoa_vals[i + n], tdoa_vals[i + 2 * n],
                                  baro_vals[i])
                 foy_solver.solve()
-                target_list_wgs.append(k2w(foy_solver.guesses[0].pop(), foy_solver.guesses[1].pop(),
-                                           foy_solver.guesses[2].pop()))
+                target_list_wgs.append(k2w(foy_solver.guesses[0][-1], foy_solver.guesses[1][-1],
+                                           foy_solver.guesses[2][-1]))
                 target_list[0].append(foy_solver.guesses[0].pop())
                 target_list[1].append(foy_solver.guesses[1].pop())
                 target_list[2].append(foy_solver.guesses[2].pop())
@@ -630,14 +633,37 @@ class EvalWindow(QDialog):
         self.foy_targets = foy_targets
         self.tdoah_targets = tdoah_targets
         self.ms = None
+        self.foy_result_labels = []
+        self.tdoah_result_labels = []
 
         self.map = None
         try:
-
-            self.init_map(self.file_path, self.input_fields, self.foy_targets, self.tdoah_targets)
             self.init_ui()
+            self.init_map(self.file_path, self.input_fields, self.foy_targets, self.tdoah_targets)
+
         except Exception as e:
             print(f'Error: {e}')
+
+    def calculate_evaluation(self):
+        self.set_eval_result('foy', 'x', 'std', abs(ef.std(self.foy_targets[0])))
+        self.set_eval_result('foy', 'y', 'std', abs(ef.std(self.foy_targets[1])))
+        self.set_eval_result('foy', 'z', 'std', abs(ef.std(self.foy_targets[2])))
+        self.set_eval_result('foy', 'x', 'mean', abs(ef.mean(self.foy_targets[0])))
+        self.set_eval_result('foy', 'y', 'mean', abs(ef.mean(self.foy_targets[1])))
+        self.set_eval_result('foy', 'z', 'mean', abs(ef.mean(self.foy_targets[2])))
+
+        self.set_eval_result('tdoah', 'x', 'std', abs(ef.std(self.tdoah_targets[0])))
+        self.set_eval_result('tdoah', 'y', 'std', abs(ef.std(self.tdoah_targets[1])))
+        self.set_eval_result('tdoah', 'z', 'std', abs(ef.std(self.tdoah_targets[2])))
+        self.set_eval_result('tdoah', 'x', 'mean', abs(ef.mean(self.tdoah_targets[0])))
+        self.set_eval_result('tdoah', 'y', 'mean', abs(ef.mean(self.tdoah_targets[1])))
+        self.set_eval_result('tdoah', 'z', 'mean', abs(ef.mean(self.tdoah_targets[2])))
+
+
+        rmse_tdoah = ef.rmse(self.tdoah_targets[0], self.ms[0])
+        print(rmse_tdoah)
+
+
 
     def init_map(self, file_path, input_fields, foy_targets, tdoah_targets):
         self.file_path = file_path
@@ -660,17 +686,20 @@ class EvalWindow(QDialog):
             go.Scatter3d(x=self.tdoah_targets[1], y=self.tdoah_targets[0], z=self.tdoah_targets[2], name="TDOAH",
                          mode='markers', marker=dict(size=3, color='blue', symbol='x')), 'tdoah')
         self.map.show()
-
+        self.calculate_evaluation()
 
     def init_ui(self):
-        self.setWindowTitle("Evaluation")
-        self.resize(800, 600)
+        self.setWindowTitle("Localization Error Diagram")
+        self.resize(800, 900)
 
         self.web_view = QWebEngineView(self)
         self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         interface = QWidget()
         interface.setLayout(self.init_interface())
+
+        result = QWidget()
+        result.setLayout(self.init_result())
 
         # Load HTML file directly into the web view
         with open('coordinate_map.html', 'r') as f:
@@ -680,8 +709,61 @@ class EvalWindow(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(interface)
         layout.addWidget(self.web_view)
+        layout.addWidget(result)
 
         self.setLayout(layout)  # Set layout to the QDialog itself
+
+    def init_result(self):
+        layout = QGridLayout()
+
+        # Initial labels
+        layout.addWidget(QLabel("Foy:"), 0, 0)
+        layout.addWidget(QLabel("TDOAH:"), 0, 3)  # Keep TDOAH label in column 3
+
+        axis_labels = ['x:', 'y:', 'z:']
+        value_labels = ['Mean:', 'Std:', 'Bias:']
+
+        for col in range(2):
+            row = 1
+            for i, axis in enumerate(axis_labels):
+                # Add the divider line before the next axis labels (except for the first axis)
+                if i > 0:
+                    line = QFrame()
+                    line.setFrameShape(QFrame.HLine)
+                    line.setFrameShadow(QFrame.Sunken)
+                    layout.addWidget(line, row, col * 3, 1, 3)  # Span 3 columns for full width
+                    row += 1
+
+                layout.addWidget(QLabel(axis), row, col * 3)  # No col_offset needed
+                labels_temp = []
+                for j, value in enumerate(value_labels):
+                    print(f'Value: {value}\ncol: {col}, j: {j}')
+                    layout.addWidget(QLabel(value), row + j, col * 3 + 1)
+                    label = QLabel("-")
+                    layout.addWidget(label, row + j, col * 3 + 2)
+                    labels_temp.append(label)
+                    print(f'Length of labels_temp: {len(labels_temp)}')
+                    if col == 0 and j == 2:
+                        self.foy_result_labels.append(labels_temp)
+                    if col == 1 and j == 2:
+                        self.tdoah_result_labels.append(labels_temp)
+
+                row += len(value_labels)  # Move to the next row after the value labels
+
+        print(f'Foy: {self.foy_result_labels}\nTDOAH: {self.tdoah_result_labels}')
+
+        return layout
+
+    def set_eval_result(self, solver, axis, metric, value):
+        axis_map = {'x': 0, 'y': 1, 'z': 2}
+        metric_map = {'mean': 0, 'std': 1, 'bias': 2}
+        metric = metric_map[metric]
+        index = axis_map[axis]
+        if solver == 'foy':
+            self.foy_result_labels[index][metric].setText(str(value))
+        elif solver == 'tdoah':
+            self.tdoah_result_labels[index][metric].setText(str(value))
+
 
     def init_interface(self):
         layout = QGridLayout()
