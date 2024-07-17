@@ -138,9 +138,11 @@ class MainWindow(QMainWindow):
             target_list = [[] for _ in range(3)]
             target_list_wgs = []
             # print(f'Test: {baro_std}')
+            tdoa_vals = []
 
             # print(f'BS: {bs}\nMS: {ms}\nMS_H: {ms_h}')
-            tdoa_vals = np.random.normal(0, tdoa_std, n * 3)
+            for i in range(3):
+                tdoa_vals.append(np.random.normal(0, tdoa_std, n))
             baro_vals = np.random.normal(0, baro_std, n)
             for i in range(n):
                 self.conv_values = self.convert_input_field(baro_vals[i])
@@ -148,7 +150,7 @@ class MainWindow(QMainWindow):
                 bs = self.conv_values
                 ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
                 # print(f'Anforderungen:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
-                tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[i], tdoa_vals[i + n], baro_vals[i])
+                tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[0][i], tdoa_vals[1][i], baro_vals[i])
                 target = tdoah_solver.solve()
 
                 # print(f'Targets before conv: {target}')
@@ -181,7 +183,7 @@ class MainWindow(QMainWindow):
                 print(f'1Error: {e}')
             for i in range(n):
                 # print(f'Loop: {i}')
-                foy_solver = Foy(foy_bs, ms, tdoa_vals[i], tdoa_vals[i + n], tdoa_vals[i + 2 * n],
+                foy_solver = Foy(foy_bs, ms, tdoa_vals[0][i], tdoa_vals[1][i], tdoa_vals[2][i],
                                  baro_vals[i])
                 foy_solver.solve()
                 target_list_wgs.append(k2w(foy_solver.guesses[0][-1], foy_solver.guesses[1][-1],
@@ -215,7 +217,6 @@ class MainWindow(QMainWindow):
             # Load Eval window
             if self.eval_window is None:
                 self.eval_window = EvalWindow(self.file_path, points, foy_targets, tdoah_targets, self)
-                self.eval_window.setAttribute(Qt.WA_DeleteOnClose)
                 self.eval_window.show()
                 self.eval_window.raise_()
                 self.eval_window.activateWindow()
@@ -230,6 +231,7 @@ class MainWindow(QMainWindow):
         if self.eval_window:  # Check if eval_window exists
             self.eval_window.close()  # Close EvalWindow when MainWindow closes
         super().closeEvent(event)
+        self.eval_window = None
 
     def on_value_changed(self, slider, label, map=False):
         if map == True:
@@ -612,6 +614,9 @@ class MainWindow(QMainWindow):
 
         return bs, ms
 
+    def set_eval_window(self):
+        self.eval_window = None
+
     def calculate_height(self):
         heights = []
         try:
@@ -643,6 +648,9 @@ class EvalWindow(QDialog):
 
         except Exception as e:
             print(f'Error: {e}')
+
+    def on_close_event(self):
+        self.parent().eval_window = None
 
     def calculate_evaluation(self):
         self.set_eval_result('foy', 'x', 'std', abs(ef.std(self.foy_targets[0])))
