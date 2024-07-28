@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
                 ms = self.conv_values.pop()
                 bs = self.conv_values
                 ms_h = float(self.input_fields[len(self.input_fields) - 1].text())
-                # print(f'Anforderungen:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
+                print(f'Anforderungen TDOAH:\nbs: {bs}\nms: {ms}\nms_h: {ms_h}\ntdoa: {tdoa_vals}')
                 tdoah_solver = Tdoah(bs, ms, ms_h, tdoa_vals[0][i], tdoa_vals[1][i], baro_vals[i])
                 target = tdoah_solver.solve()
 
@@ -183,6 +183,7 @@ class MainWindow(QMainWindow):
                 print(f'1Error: {e}')
             for i in range(n):
                 # print(f'Loop: {i}')
+                print(f'Foy Input:\nBS: {foy_bs}\nMS: {ms}\nTDOA: {tdoa_vals[0][i]}\nBaro: {baro_vals[i]}')
                 foy_solver = Foy(foy_bs, ms, tdoa_vals[0][i], tdoa_vals[1][i], tdoa_vals[2][i],
                                  baro_vals[i])
                 foy_solver.solve()

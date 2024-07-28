@@ -7,8 +7,17 @@ class Foy:
     def __init__(self, bs_list, ms, tdoa_0_std=0, tdoa_1_std=0, tdoa_2_std=0, baro_std=0):
         self.bs_list = bs_list
         self.ms = ms
+        bs = [[] for _ in range(4)]
 
-        print(f"Solver input:\n{self.bs_list}\n{self.ms}\n")
+        for j in range(len(bs_list)):
+            bs[0].append(bs_list[j][0])
+            bs[1].append(bs_list[j][1])
+            bs[2].append(bs_list[j][2])
+        bs[3] = bs_list[-1]
+        self.bs_list = bs
+
+
+        print(f"Solver input (iinside):\n{self.bs_list}\n{self.ms}\n")
         self.tdoa_0_std = tdoa_0_std
         self.tdoa_1_std = tdoa_1_std
         self.tdoa_2_std = tdoa_2_std
@@ -21,7 +30,7 @@ class Foy:
         self.R_i_real = [0, 0, 0, 0]
         self.R_i_guess = [0, 0, 0, 0]
         self.guesses = [[], [], []]
-        self.guessed_position = self.make_init_guess(bs_list)
+        self.guessed_position = self.make_init_guess(self.bs_list)
         self.guesses[0].append(self.guessed_position[0])
         self.guesses[1].append(self.guessed_position[1])
         self.guesses[2].append(self.guessed_position[2])
@@ -142,7 +151,7 @@ class Foy:
             self.update_x_y()
             i += 1
 
-
+"""
 bs = [[5621990, 5616452, 5618652, 5619990], [636646, 636456, 640156, 636346], [100, 0, 0, 200], [5618222, 637900, 180]]
 # Below is working
 bs = [[3981552.712225135, 3979874.4314526464, 3970987.378112046, 3969313.5507772937], [764924.6490695147, 773609.222315067, 762894.8669536225, 771556.3950646253], [4907185.509521091, 4907185.509521091, 4915995.197143871, 4915995.197143871], [3975898.361382526, 768039.4736985303, 4911254.390409387]]
@@ -155,7 +164,7 @@ print(f"Solver input: {bs, ms}")
 solver = Foy(bs, ms)
 solver.solve()
 print(solver.guesses[0][-1], solver.guesses[1][-1], solver.guesses[2][-1])
-
+"""
 """
 BS0 = np.array([49.449010, 11.064284, 0])
 BS1 = np.array([49.457646, 11.088916, 0])
