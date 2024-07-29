@@ -1,10 +1,9 @@
-import logging
-
 import numpy as np
 import math
 
+
 class Foy:
-    def __init__(self, bs_list, ms, tdoa_0_std=0, tdoa_1_std=0, tdoa_2_std=0, baro_std=0):
+    def __init__(self, bs_list, ms):
         self.bs_list = bs_list
         self.ms = ms
         bs = [[] for _ in range(4)]
@@ -16,13 +15,11 @@ class Foy:
         bs[3] = bs_list[-1]
         self.bs_list = bs
 
-
-        print(f"Solver input (iinside):\n{self.bs_list}\n{self.ms}\n")
-        self.tdoa_0_std = tdoa_0_std
-        self.tdoa_1_std = tdoa_1_std
-        self.tdoa_2_std = tdoa_2_std
-        self.tdoa_std = [tdoa_0_std, tdoa_1_std, tdoa_2_std]
-        self.baro_std = baro_std
+        self.cl = np.longdouble(3e8)
+        # print(f"Solver input (iinside):\n{self.bs_list}\n{self.ms}\n")
+        self.tdoa01 = None
+        self.tdoa02 = None
+        self.tdoa03 = None
         self.h = np.zeros(3)
         self.G = np.zeros((3, 3))
         self.deltaXY = np.zeros(3)
@@ -36,81 +33,82 @@ class Foy:
         self.guesses[2].append(self.guessed_position[2])
 
     def update_x_y(self):
-        #print(f"Old position: {self.guessed_position}")
+        # print(f"Old position: {self.guessed_position}")
         self.guessed_position[0] += self.deltaXY[0]
         self.guessed_position[1] += self.deltaXY[1]
         self.guessed_position[2] += self.deltaXY[2]
-        #print(f"New position: {self.guessed_position}")
+        # print(f"New position: {self.guessed_position}")
         self.guesses[0].append(self.guessed_position[0])
         self.guesses[1].append(self.guessed_position[1])
         self.guesses[2].append(self.guessed_position[2])
-        #print(f"Real position: {self.ms}\n")
-        #print(f"Difference: {self.guessed_position[0] - self.ms[0]}, {self.guessed_position[1] - self.ms[1]}, {self.guessed_position[2] - self.ms[2]}\n")
+        # print(f"Real position: {self.ms}\n")
+        # print(f"Difference: {self.guessed_position[0] - self.ms[0]}, {self.guessed_position[1] - self.ms[1]}, {self.guessed_position[2] - self.ms[2]}\n")
 
     def calculate_deltaXY(self):
         GT_G = np.matmul(np.transpose(self.G), self.G)
         GT_G_inv = np.linalg.inv(GT_G)
         GT_G_inv_GT = np.matmul(GT_G_inv, np.transpose(self.G))
         self.deltaXY = np.matmul(GT_G_inv_GT, self.h)
-        #print(f"deltaXY: {self.deltaXY}\n")
+        # print(f"deltaXY: {self.deltaXY}\n")
         return self.deltaXY
 
     def calculate_G(self):
         self.G[0, 0] = ((self.bs_list[0][0] - self.guessed_position[0]) / self.R_i_guess[0]) - (
-                    (self.bs_list[1][0] - self.guessed_position[0]) / self.R_i_guess[1])
+                (self.bs_list[1][0] - self.guessed_position[0]) / self.R_i_guess[1])
         self.G[0, 1] = ((self.bs_list[0][1] - self.guessed_position[1]) / self.R_i_guess[0]) - (
-                    (self.bs_list[1][1] - self.guessed_position[1]) / self.R_i_guess[1])
+                (self.bs_list[1][1] - self.guessed_position[1]) / self.R_i_guess[1])
         self.G[0, 2] = ((self.bs_list[0][2] - self.guessed_position[2]) / self.R_i_guess[0]) - (
-                    (self.bs_list[1][2] - self.guessed_position[2]) / self.R_i_guess[1])
+                (self.bs_list[1][2] - self.guessed_position[2]) / self.R_i_guess[1])
         self.G[1, 0] = ((self.bs_list[0][0] - self.guessed_position[0]) / self.R_i_guess[0]) - (
-                    (self.bs_list[2][0] - self.guessed_position[0]) / self.R_i_guess[2])
+                (self.bs_list[2][0] - self.guessed_position[0]) / self.R_i_guess[2])
         self.G[1, 1] = ((self.bs_list[0][1] - self.guessed_position[1]) / self.R_i_guess[0]) - (
-                    (self.bs_list[2][1] - self.guessed_position[1]) / self.R_i_guess[2])
+                (self.bs_list[2][1] - self.guessed_position[1]) / self.R_i_guess[2])
         self.G[1, 2] = ((self.bs_list[0][2] - self.guessed_position[2]) / self.R_i_guess[0]) - (
-                    (self.bs_list[2][2] - self.guessed_position[2]) / self.R_i_guess[2])
+                (self.bs_list[2][2] - self.guessed_position[2]) / self.R_i_guess[2])
         self.G[2, 0] = ((self.bs_list[0][0] - self.guessed_position[0]) / self.R_i_guess[0]) - (
-                    (self.bs_list[3][0] - self.guessed_position[0]) / self.R_i_guess[3])
+                (self.bs_list[3][0] - self.guessed_position[0]) / self.R_i_guess[3])
         self.G[2, 1] = ((self.bs_list[0][1] - self.guessed_position[1]) / self.R_i_guess[0]) - (
-                    (self.bs_list[3][1] - self.guessed_position[1]) / self.R_i_guess[3])
+                (self.bs_list[3][1] - self.guessed_position[1]) / self.R_i_guess[3])
         self.G[2, 2] = ((self.bs_list[0][2] - self.guessed_position[2]) / self.R_i_guess[0]) - (
-                    (self.bs_list[3][2] - self.guessed_position[2]) / self.R_i_guess[3])
+                (self.bs_list[3][2] - self.guessed_position[2]) / self.R_i_guess[3])
 
-        #print(f"G: {self.G}\n")
+        # print(f"G: {self.G}\n")
 
     def calculate_h(self):
         # Calculate the h vector
         for i in range(1, 4):
-            #print(f"R_i_0[i]: {self.R_i_0[i]}, R_iguess[i]: {self.R_i_guess[i]}, R_iguess[i-1]: {self.R_i_guess[i - 1]}")
+            # print(f"R_i_0[i]: {self.R_i_0[i]}, R_iguess[i]: {self.R_i_guess[i]}, R_iguess[i-1]: {self.R_i_guess[i - 1]}")
             self.h[i - 1] = (self.R_i_0[i] - (self.R_i_guess[i] - self.R_i_guess[0]))
 
-        #print(f"h: {self.h}\n")
+        # print(f"h: {self.h}\n")
 
     def calculate_R_i_guess(self):
-        #print(f"Bs list: {self.bs_list}")
+        # print(f"Bs list: {self.bs_list}")
         for i in range(4):
             try:
-                #print(f"i:{i}, bs_list[i]: {self.bs_list[i]}, guessed_position: {self.guessed_position}")
+                # print(f"i:{i}, bs_list[i]: {self.bs_list[i]}, guessed_position: {self.guessed_position}")
                 self.R_i_guess[i] = math.sqrt(
-                    (self.bs_list[i][0] - self.guessed_position[0]) ** 2 + (self.bs_list[i][1] - self.guessed_position[1]) ** 2 + (
-                                self.bs_list[i][2] - self.guessed_position[2]) ** 2)
+                    (self.bs_list[i][0] - self.guessed_position[0]) ** 2 + (
+                            self.bs_list[i][1] - self.guessed_position[1]) ** 2 + (
+                            self.bs_list[i][2] - self.guessed_position[2]) ** 2)
             except Exception as e:
-                logging.error(f"Error: {e}")
-        #print(f"R_i_guess: {self.R_i_guess}\n")
+                print(f"Error: {e}")
+        # print(f"R_i_guess: {self.R_i_guess}\n")
 
     def make_init_guess(self, bs_list):
         # Compute the center coordinates
         x_val = sum(bs_list[0]) / len(bs_list[0])
         y_val = sum(bs_list[1]) / len(bs_list[1])
         z_val = sum(bs_list[2]) / len(bs_list[2])
-        #print(x_val, y_val, z_val)
+        # print(x_val, y_val, z_val)
         center = np.array([x_val, y_val, z_val])
 
         # Print the result
-        #print(f"Initial guess: {center}\n")
+        # print(f"Initial guess: {center}\n")
         return center
 
     def calculate_tdoa_s(self):
-        #print(f'TDOA_STD: {self.tdoa_std}')
+        # print(f'TDOA_STD: {self.tdoa_std}')
         for i in range(4):
             self.R_i_real[i] = math.sqrt(
                 (self.bs_list[i][0] - self.ms[0]) ** 2 + (self.bs_list[i][1] - self.ms[1]) ** 2 + (
@@ -121,35 +119,38 @@ class Foy:
                 (self.bs_list[0][0] - self.ms[0]) ** 2 + (self.bs_list[0][1] - self.ms[1]) ** 2 + (
                         self.bs_list[0][2] - self.ms[2]) ** 2))
 
+        tdoa = [self.tdoa01, self.tdoa02, self.tdoa03]
+        # print(f"R_i_0: {self.R_i_0}")
 
-        #print(f"R_i_0: {self.R_i_0}")
         for i, t in enumerate(self.R_i_0):
             if i > 0:
-                #print(f'i: {i}')
-                self.R_i_0[i] += self.tdoa_std[i-1]
+                # print(f'i: {i}')
+                self.R_i_0[i] = tdoa[i - 1] * self.cl
 
-        #print(f"R_i: {self.R_i_real}")
-        #print(f"R_i_0: {self.R_i_0}\n")
+        # print(f"R_i: {self.R_i_real}")
+        # print(f"R_i_0: {self.R_i_0}\n")
 
-
-
-    def solve(self):
+    def solve(self, tdoa01, tdoa02, tdoa03):
+        self.tdoa01 = tdoa01
+        self.tdoa02 = tdoa02
+        self.tdoa03 = tdoa03
         i = 0
         delta = [100, 100, 100]
         while i < 20 and abs(sum(delta)) > 0.01:
-            #print(f"Step {i + 1}")
+            # print(f"Step {i + 1}")
             self.calculate_R_i_guess()
-            #print("Calculated R_i_guess")
+            # print("Calculated R_i_guess")
             self.calculate_tdoa_s()
-            #print("Calculated tdoa_s")
+            # print("Calculated tdoa_s")
             self.calculate_h()
-            #print("Calculated h")
+            # print("Calculated h")
             self.calculate_G()
-            #print("Calculated G")
+            # print("Calculated G")
             delta = self.calculate_deltaXY()
-            #print(delta[0])
+            # print(delta[0])
             self.update_x_y()
             i += 1
+
 
 """
 bs = [[5621990, 5616452, 5618652, 5619990], [636646, 636456, 640156, 636346], [100, 0, 0, 200], [5618222, 637900, 180]]

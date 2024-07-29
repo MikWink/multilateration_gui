@@ -94,6 +94,9 @@ print(f'Length of xpoints_base: {len(xpoints_base)}\nLength of xpoints_comp: {le
 print(xpoints_base)
 print(xpoints_comp)
 
+print(ypoints_base)
+print(ypoints_comp)
+
 for i in range(len(xpoints_base)):
     delta_h.append(np.abs((R * T) / g * np.log(float(ypoints_base[i]) / float(ypoints_comp[i]))))
 

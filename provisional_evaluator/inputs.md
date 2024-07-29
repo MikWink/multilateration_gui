@@ -1,26 +1,78 @@
-Foy Input:
-BS: [[3976703.51788304, 3977242.6364594754, 3974549.515331264, 3976458.286240173], [769638.781421752, 766376.396800414, 766776.5182939697, 768179.6010686316], [4911043.274309775, 4911116.385812482, 4913219.576217721, 4911855.209291501], [3975930.7137155235, 768239.862059258, 4912076.173285098]]
-MS: [3975930.7137155235, 768239.862059258, 4912076.173285098]
-TDOA: 0.0
-Baro: 0.0
+# TDOAH and Foy Solvers
+Requirements.txt might not working properly, so here are the packages you need to install:
+```bash
+json
+numpy
+math
+```
 
-Anforderungen TDOAH:
-bs: [(3976703.51788304, 769638.781421752, 4911043.274309775), (3977242.6364594754, 766376.396800414, 4911116.385812482), (3974549.515331264, 766776.5182939697, 4913219.576217721), (3976458.286240173, 768179.6010686316, 4911855.209291501)]
-ms: (3975930.7137155235, 768239.862059258, 4912076.173285098)
-ms_h: 680.0
+## Contents of `evaluation_functions.py`
+```python
+x, y, z = w2k(lat, long, h)
+```
+Converts WGS84 coordinates to Cartesian coordinates.
 
-Solver input:
-[[3976703.51788304, 3977242.6364594754, 3974549.515331264, 3976458.286240173], [769638.781421752, 766376.396800414, 766776.5182939697, 768179.6010686316], [4911043.274309775, 4911116.385812482, 4913219.576217721, 4911855.209291501], [3975930.7137155235, 768239.862059258, 4912076.173285098]]
-[3975930.7137155235, 768239.862059258, 4912076.173285098]
+```python
+lat, long, alt = k2w(x, y, z)
+```
+Converts Cartesian coordinates to WGS84 coordinates.
 
-Solver input:
-[[2186505.011617111, 2188376.873299467, 2189778.555109793, 3976128.5624686414, 3975601.0260433946], [980654.6307135335, 979559.6972976201, 980260.7039221157, 768115.9044177314, 768176.1589341294], [5891643.249577755, 5891055.086832317, 5890503.843719161, 4911445.178840008, 4911666.11481281], [2186564.431374603, 980730.1458587197, 5891600.230933382]]
-[2186564.431374603, 980730.1458587197, 5891600.230933382]
+```python
+delta_h = pressure2height(pressureRef, pressure)
+```
+Converts pressure difference to height difference.
 
+
+
+
+
+
+### Tdoah Class:
+```python
+solver = Tdoah(bs, ms, ms_h, tdoa01, tdoa02)
+```
+
+`bs`: [[float, float, float], [float, float, float], [float, float, float], _[float, float, float]_] # Last coordinate is ms
+
+`ms`: [float, float, float]
+
+```python
+target = solver.solve(ms_h, tdoa01, tdoa02)
+```
+
+`ms_h`: **float** in meters
+
+`tdoa01`: **float** 
+
+`tdoa02`: **float**
+
+### Foy Class:
+```python
+solver = Foy(bs, ms, tdoa01, tdoa02, tdoa03)
+```
+
+`bs`: [[float, float, float], [float, float, float], [float, float, float], _[float, float, float]_] # Last coordinate is ms
+
+`ms`: [float, float, float]
+
+```python
+solver.solve(tdoa01, tdoa02, tdoa03)
+```
+
+`tdoa01`: **float** 
+
+`tdoa02`: **float**
+
+`tdoa03`: **float**
+
+```python
+target = solver.guesses[0][-1], solver.guesses[1][-1], solver.guesses[2][-1]
+```
 
 TODOS:
-- [ ] Make solver take tdoas as input
+- [x] Make solver take tdoas as input
+- [ ] Altitude or pressure as input
 - [ ] Make solver take baro as input
 - [x] Fix Foy solver
-- [ ] Cleanup solver call (inputs)
-- [ ] Implement function to calculate altitude from pressure
+- [x] Cleanup solver call (inputs)
+- [x] Implement function to calculate altitude from pressure

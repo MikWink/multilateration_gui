@@ -2,20 +2,22 @@ import numpy as np
 from evaluation_functions import k2w
 
 class Tdoah:
-    def __init__(self, bs, ms, ms_h, tdoa_std_1=0, tdoa_std_2=0, baro_std=0):
+    def __init__(self, bs, ms):
         self.bs = bs
         self.ms = ms
-        self.ms_h = ms_h + baro_std
+        self.ms_h = None
         print(f'BS: {self.bs}\nMS: {self.ms}\n')
         self.cl = np.longdouble(3e8)
         self.A = 6378137
         self.B = 0.00669438000426
         self.C = 0.99330561999574
-        self.tdoa_std_1 = tdoa_std_1
-        self.tdoa_std_2 = tdoa_std_2
-        self.baro_std = baro_std
+        self.tdoa01 = None
+        self.tdoa02 = None
 
-    def solve(self, tdoa_0=-1, tdoa_1=-1):
+    def solve(self, ms_h, tdoa01, tdoa02):
+        self.tdoa01 = tdoa01
+        self.tdoa02 = tdoa02
+        self.ms_h = ms_h
         P0 = (self.bs[0])
         P1 = (self.bs[1])
         P2 = (self.bs[2])
@@ -50,12 +52,12 @@ class Tdoah:
 
         #print(f't_0: {t_0}\nt_1: {t_1}\nt_2: {t_2}\n')
 
-        if tdoa_0 == -1 and tdoa_1 == -1:
-            r_0_1 = ((t_1 - t_0) * self.cl) + self.tdoa_std_1
-            r_0_2 = ((t_2 - t_0) * self.cl) + self.tdoa_std_2
+        if self.tdoa01 == None and self.tdoa02 == None:
+            r_0_1 = ((t_1 - t_0) * self.cl)
+            r_0_2 = ((t_2 - t_0) * self.cl)
         else:
-            r_0_1 = tdoa_0
-            r_0_2 = tdoa_1
+            r_0_1 = self.tdoa01
+            r_0_2 = self.tdoa02
 
         #print(f'r_0_1: {r_0_1}\nr_0_2: {r_0_2}\n')
 

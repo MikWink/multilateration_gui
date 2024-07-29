@@ -52,6 +52,14 @@ def k2w(X, Y, Z):
 
     return fi, la, h
 
+def pressure2height(pressureRef, pressure):
+    """Converts pressure to height using the hypsometric formula."""
+    # Constants
+    R = 8.31432  # Universal gas constant in J/(mol*K)
+    g = 9.80665  # Standard acceleration due to gravity in m/s^2
+    T = 288.15  # Standard temperature in K
+    return (np.abs(R * T) / g) * np.log(pressureRef / pressure)
+
 
 def deg2dms(deg):
     d = int(deg)
@@ -60,33 +68,38 @@ def deg2dms(deg):
 
     return d, m, s
 
+
 def read_json(file_path):
     with open(file_path, 'r') as json_file:
         data = extract_data(json.load(json_file))
         return data
 
+
 def convert_data(bs_data):
-  """Converts the given JSON data into the desired list of lists format."""
-  result = []
-  for key1, value1 in bs_data.items():
-    for key2, value2 in value1.items():
-      if key2 != '3':  # Assuming '3' is the value you want to exclude
-        result.append([float(value1['1']), float(value1['2']), int(value1['3'])])
-  return result
+    """Converts the given JSON data into the desired list of lists format."""
+    result = []
+    for key1, value1 in bs_data.items():
+        for key2, value2 in value1.items():
+            if key2 != '3':  # Assuming '3' is the value you want to exclude
+                result.append([float(value1['1']), float(value1['2']), int(value1['3'])])
+    return result
+
 
 def extract_data(json_data):
-  """Extracts data from a JSON file with the given structure.
+    """Extracts data from a JSON file with the given structure.
 
-  Args:
-    json_data: The JSON data as a dictionary.
+    Args:
+      json_data: The JSON data as a dictionary.
 
-  Returns:
-    A list of lists, where each inner list contains three values:
-    [value1, value2, value3].
-  """
+    Returns:
+      A list of lists, where each inner list contains three values:
+      [value1, value2, value3].
+    """
 
-  result = []
-  for item in json_data.values():
-    values = list(item.values())
-    result.append(values)
-  return result
+    result = []
+    for item in json_data.values():
+        values = list(item.values())
+        result.append(values)
+    return result
+
+
