@@ -42,7 +42,6 @@ def rmse(predictions, targets):
     @param  targets true value.
     @return rmse.
     """
-    rmse = []
-    for prediction in predictions:
-        rmse.append(np.sqrt(((prediction - targets) ** 2).mean()))
+    print(f'predictions: {predictions}\ntargets: {targets}')
+    rmse = np.sqrt(((predictions - targets) ** 2).mean())
     return rmse

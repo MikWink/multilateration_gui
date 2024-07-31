@@ -657,20 +657,27 @@ class EvalWindow(QDialog):
         self.set_eval_result('foy', 'x', 'std', abs(ef.std(self.foy_targets[0])))
         self.set_eval_result('foy', 'y', 'std', abs(ef.std(self.foy_targets[1])))
         self.set_eval_result('foy', 'z', 'std', abs(ef.std(self.foy_targets[2])))
-        self.set_eval_result('foy', 'x', 'mean', abs(ef.mean(self.foy_targets[0])))
-        self.set_eval_result('foy', 'y', 'mean', abs(ef.mean(self.foy_targets[1])))
-        self.set_eval_result('foy', 'z', 'mean', abs(ef.mean(self.foy_targets[2])))
+        self.set_eval_result('foy', 'x', 'bias', abs(ef.bias(abs(ef.std(self.foy_targets[0])), abs(ef.rmse(self.foy_targets[0], 0)))))
+        self.set_eval_result('foy', 'y', 'bias', abs(ef.bias(abs(ef.std(self.foy_targets[1])), abs(ef.rmse(self.foy_targets[1], 0)))))
+        self.set_eval_result('foy', 'z', 'bias', abs(ef.bias(abs(ef.std(self.foy_targets[2])), abs(ef.rmse(self.foy_targets[2], 0)))))
 
         self.set_eval_result('tdoah', 'x', 'std', abs(ef.std(self.tdoah_targets[0])))
         self.set_eval_result('tdoah', 'y', 'std', abs(ef.std(self.tdoah_targets[1])))
         self.set_eval_result('tdoah', 'z', 'std', abs(ef.std(self.tdoah_targets[2])))
-        self.set_eval_result('tdoah', 'x', 'mean', abs(ef.mean(self.tdoah_targets[0])))
-        self.set_eval_result('tdoah', 'y', 'mean', abs(ef.mean(self.tdoah_targets[1])))
-        self.set_eval_result('tdoah', 'z', 'mean', abs(ef.mean(self.tdoah_targets[2])))
+        self.set_eval_result('tdoah', 'x', 'bias', abs(ef.mean(self.tdoah_targets[0])))
+        self.set_eval_result('tdoah', 'y', 'bias', abs(ef.mean(self.tdoah_targets[1])))
+        self.set_eval_result('tdoah', 'z', 'bias', abs(ef.mean(self.tdoah_targets[2])))
+
+        self.set_eval_result('foy', 'x', 'rmse', abs(ef.rmse(self.foy_targets[0], 0)))
+        self.set_eval_result('foy', 'y', 'rmse', abs(ef.rmse(self.foy_targets[1], 0)))
+        self.set_eval_result('foy', 'z', 'rmse', abs(ef.rmse(self.foy_targets[2], 0)))
+
+        self.set_eval_result('tdoah', 'x', 'rmse', abs(ef.rmse(self.tdoah_targets[0], 0)))
+        self.set_eval_result('tdoah', 'y', 'rmse', abs(ef.rmse(self.tdoah_targets[1], 0)))
+        self.set_eval_result('tdoah', 'z', 'rmse', abs(ef.rmse(self.tdoah_targets[2], 0)))
 
 
-        rmse_tdoah = ef.rmse(self.tdoah_targets[0], self.ms[0])
-        print(rmse_tdoah)
+
 
 
 
@@ -730,7 +737,7 @@ class EvalWindow(QDialog):
         layout.addWidget(QLabel("TDOAH:"), 0, 3)  # Keep TDOAH label in column 3
 
         axis_labels = ['x:', 'y:', 'z:']
-        value_labels = ['Mean:', 'Std:', 'Bias:']
+        value_labels = ['Std:', 'Bias:', 'RMSE:']
 
         for col in range(2):
             row = 1
@@ -765,7 +772,7 @@ class EvalWindow(QDialog):
 
     def set_eval_result(self, solver, axis, metric, value):
         axis_map = {'x': 0, 'y': 1, 'z': 2}
-        metric_map = {'mean': 0, 'std': 1, 'bias': 2}
+        metric_map = {'std': 0, 'bias': 1, 'rmse': 2}
         metric = metric_map[metric]
         index = axis_map[axis]
         if solver == 'foy':
