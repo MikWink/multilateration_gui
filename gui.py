@@ -16,6 +16,7 @@ import pvlib
 from solver.tdoah import *
 from solver.tdoah_class import Tdoah
 import utilities.evalution_functions as ef
+from utilities.filter_outliers import filter_list
 
 
 class MainWindow(QMainWindow):
@@ -103,12 +104,12 @@ class MainWindow(QMainWindow):
         # Start button
         start_button = QPushButton("Start")
         start_button.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 12.48,
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 1.285,
                                          int(iterations_input.text())))
 
         start_eval_btn = QPushButton("Start")
         start_eval_btn.clicked.connect(
-            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 12.48,
+            lambda: self.on_eval_clicked(self.web, int(tdoa_std_label.text()), float(baro_std_label.text()) * 1.285,
                                          int(iterations_input.text())))
 
         # Adding Widgets
@@ -194,6 +195,7 @@ class MainWindow(QMainWindow):
                 target_list[2].append(foy_solver.guesses[2].pop())
 
             print(f'Foy Solver: {target_list}')
+            #target_list = filter_list(target_list)
             foy_trace = self.map2.make_trace(target_list_wgs, 'scatter', 'Foy', 'green', 3)
             self.map2.add_trace(foy_trace, 'foy')
             self.map2.update()
@@ -783,8 +785,9 @@ class EvalWindow(QDialog):
 
     def init_interface(self):
         layout = QGridLayout()
-        update_button = QPushButton("Update")
-        update_button.clicked.connect(lambda: self.on_update_clicked())
+
+        update_button = QPushButton("Take Picture")
+        update_button.clicked.connect(lambda: self.on_take_picture_clicked())
         layout.addWidget(update_button, 0, 0)
 
         earth_button = QPushButton("Earth on/off")
@@ -800,6 +803,15 @@ class EvalWindow(QDialog):
         layout.addWidget(ms_button, 0, 3)
 
         return layout
+
+    def on_take_picture_clicked(self):
+        try:
+            options = QFileDialog.Options()
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save Image", "", "PNG Files (*.png);;All Files (*)", options=options)
+            if file_name:
+                self.map.fig.write_image(file_name)
+        except Exception as e:
+            print(f'Error: {e}')
 
     def on_update_clicked(self):
         try:
