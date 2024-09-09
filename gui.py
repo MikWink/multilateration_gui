@@ -195,7 +195,8 @@ class MainWindow(QMainWindow):
                 target_list[2].append(foy_solver.guesses[2].pop())
 
             print(f'Foy Solver: {target_list}')
-            #target_list = filter_list(target_list)
+            target_list_wgs = filter_list(target_list_wgs)
+            target_list = filter_list(target_list)
             foy_trace = self.map2.make_trace(target_list_wgs, 'scatter', 'Foy', 'green', 3)
             self.map2.add_trace(foy_trace, 'foy')
             self.map2.update()

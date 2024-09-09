@@ -2,8 +2,10 @@ import json
 from solver.tdoah import w2k, k2w
 import numpy as np
 from solver.tdoah_class import Tdoah
+from solver.foy import Foy
 import plotly.graph_objects as go
 import plotly.offline as pyo
+from evalution_functions import rmse, std, bias
 
 
 def read_json(file_path):
@@ -59,8 +61,10 @@ for i in range(5):
         NPZ = np.load(f'../evaluation_data/NPZ_Data/70-b3-d5-67-70-ff-03-4{i}.npz', allow_pickle=True)
         tdoa_0 = NPZ['tdoa_0']
         tdoa_1 = NPZ['tdoa_1']
+        print(NPZ)
+        tdoa_2 = NPZ['tdoa_2']
 
-        print(f'\ntdoa_0: {len(tdoa_0)}\ntdoa_1: {len(tdoa_1)}\n')
+        print(f'\ntdoa_0: {len(tdoa_0)}\ntdoa_1: {len(tdoa_1)}\ntdoa_2: {len(tdoa_2)}\n')
         print(f'bs: {bs}\nms: {ms}\nms_h: {ms_h}\n')
 
         x_values = []
@@ -93,6 +97,11 @@ for i in range(5):
         norm_distances = np.clip(norm_distances, 0, 1)
 
         print(norm_distances)
+
+        for j in range(len(tdoa_0)):
+            foy_solver = Foy(bs, ms[i], tdoa_0[j], tdoa_1[j])
+
+
 
 
 
@@ -134,6 +143,45 @@ for i in range(5):
             ),
             title=endpoint_id
         )
+
+        # Berechne die RMSE, std und Bias für jede Achse
+        targets = np.array([0, 0, 0])  # Setze die Zielposition (real) als [0, 0, 0]
+
+        # Konvertiere Listen in numpy Arrays für die Berechnungen
+        x_values = np.array(x_values)
+        y_values = np.array(y_values)
+        z_values = np.array(z_values)
+
+        # Berechnungen für X-Achse
+        x_rmse = rmse(x_values, targets[0])
+        x_std = std(x_values)
+        x_bias = bias(x_std, x_rmse)
+
+        # Berechnungen für Y-Achse
+        y_rmse = rmse(y_values, targets[1])
+        y_std = std(y_values)
+        y_bias = bias(y_std, y_rmse)
+
+        # Berechnungen für Z-Achse
+        z_rmse = rmse(z_values, targets[2])
+        z_std = (std(z_values))
+        z_bias = bias(z_std, z_rmse)
+
+        # Ausgabe der Ergebnisse
+        print(f'X-Achse: RMSE = {x_rmse}, Std = {x_std}, Bias = {x_bias}')
+        print(f'Y-Achse: RMSE = {y_rmse}, Std = {y_std}, Bias = {y_bias}')
+        print(f'Z-Achse: RMSE = {z_rmse}, Std = {z_std}, Bias = {z_bias}')
+
+        # Optional: Ergebnisse in das HTML-Diagramm einfügen
+        fig.add_annotation(
+            text=f"X-Achse: RMSE = {x_rmse:.2f}, Std = {x_std:.2f}, Bias = {x_bias:.2f}<br>"
+                 f"Y-Achse: RMSE = {y_rmse:.2f}, Std = {y_std:.2f}, Bias = {y_bias:.2f}<br>"
+                 f"Z-Achse: RMSE = {z_rmse:.2f}, Std = {z_std:.2f}, Bias = {z_bias:.2f}",
+            xref="paper", yref="paper",
+            x=0.5, y=1.1, showarrow=False
+        )
+
+
 
         # Generate the HTML string of the figure
         html_string = pyo.plot(fig, include_plotlyjs='cdn', output_type='div')
